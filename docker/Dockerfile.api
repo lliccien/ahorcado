@@ -1,0 +1,42 @@
+# Dockerfile multi-stage para API (NestJS)
+FROM node:20-alpine AS base
+RUN corepack enable && corepack prepare pnpm@latest --activate
+WORKDIR /app
+
+# Etapa de dependencias
+FROM base AS deps
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/api/package.json ./apps/api/
+COPY apps/web/package.json ./apps/web/
+COPY turbo.json ./
+RUN pnpm install --frozen-lockfile
+
+# Etapa de construcción
+FROM base AS builder
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps ./apps
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json tsconfig.json ./
+COPY apps/api ./apps/api
+
+RUN pnpm run build:api
+
+# Etapa de producción
+FROM node:20-alpine AS runner
+RUN corepack enable && corepack prepare pnpm@latest --activate
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+# Copiar solo dependencias de producción
+COPY --from=builder /app/package.json /app/pnpm-lock.yaml /app/pnpm-workspace.yaml ./
+COPY --from=builder /app/apps/api/package.json ./apps/api/
+RUN pnpm install --prod --frozen-lockfile
+
+# Copiar código compilado
+COPY --from=builder /app/apps/api/dist ./apps/api/dist
+
+WORKDIR /app/apps/api
+
+EXPOSE 3000
+
+CMD ["node", "dist/main.js"]
