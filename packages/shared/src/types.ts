@@ -88,6 +88,8 @@ export interface GameFinishedPayload {
   sessionCode: string;
   leaderboard: ScoreboardEntry[];
   totalRounds: number;
+  /** Estado final de la sesión (status=FINISHED) para hidratar el cliente */
+  session: SessionState;
 }
 
 export interface SessionSnapshot {

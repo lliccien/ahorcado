@@ -33,7 +33,8 @@ export default function HangmanCanvas({ livesRemaining, className = '' }: Props)
       viewBox="0 0 200 220"
       role="img"
       aria-label={`Ahorcado: ${errors} de ${LIVES_PER_ROUND} errores`}
-      className={`mx-auto h-44 w-44 sm:h-56 sm:w-56 ${className}`}
+      className={`mx-auto h-44 w-44 sm:h-56 sm:w-56 md:h-64 md:w-64 lg:h-72 lg:w-72 ${className}`}
+      style={{ filter: 'drop-shadow(0 1px 0 rgba(0,0,0,0.6))' }}
     >
       <style>{`
         @keyframes hangmanPartIn {

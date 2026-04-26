@@ -149,6 +149,9 @@ export function useGameSocket(): UseGameSocketReturn {
     const onGameFinished = (p: GameFinishedPayload) => {
       setFinalLeaderboard(p);
       setScoreboard(p.leaderboard);
+      // Aplicamos el `session` final con status=FINISHED para que la
+      // condición de render del FinalLeaderboard se cumpla.
+      setSession(p.session);
     };
     const onError = (e: ErrorPayload) => {
       setError(e);

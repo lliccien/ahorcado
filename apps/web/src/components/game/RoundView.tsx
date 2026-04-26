@@ -68,8 +68,11 @@ export default function RoundView({
         totalRounds={session.totalRounds}
       />
 
-      <div className="mx-auto flex w-full max-w-md flex-col gap-4 px-3 pb-4">
-        <header className="flex items-center justify-between gap-2 text-xs uppercase tracking-widest text-slate-400">
+      <div className="mx-auto flex w-full max-w-md flex-col gap-4 px-3 pb-4 md:max-w-2xl lg:max-w-5xl">
+        <header
+          className="flex items-center justify-between gap-2 text-xs uppercase tracking-widest text-slate-400"
+          data-testid="round-header"
+        >
           <button
             type="button"
             onClick={() => {
@@ -77,11 +80,15 @@ export default function RoundView({
             }}
             className="rounded-full bg-white/5 px-3 py-1 text-[11px] text-slate-300 ring-1 ring-white/10 hover:bg-white/10"
             aria-label="Salir de la partida"
+            data-testid="round-leave-btn"
           >
             Salir
           </button>
           <div className="flex items-center gap-1.5">
-            <span className="rounded-full bg-amber-400/10 px-3 py-1 font-semibold text-amber-200">
+            <span
+              className="rounded-full bg-amber-400/10 px-3 py-1 font-semibold text-amber-200"
+              data-testid="round-category"
+            >
               {round.categoryName}
             </span>
             <span
@@ -93,41 +100,48 @@ export default function RoundView({
           </div>
         </header>
 
-        <HangmanCanvas livesRemaining={myState.livesRemaining} />
-
-        <WordDisplay
-          maskedView={myState.maskedView}
-          solved={myState.solved}
-        />
-
-        <OpponentsBar
-          players={players}
-          myPlayerId={myPlayerId}
-          opponents={opponents}
-          round={round}
-        />
-
-        {(myState.solved || dead) && (
-          <div
-            role="status"
-            className={`rounded-xl px-4 py-2 text-center text-sm ${
-              myState.solved
-                ? 'bg-emerald-500/10 text-emerald-200 ring-1 ring-emerald-400/40'
-                : 'bg-red-500/10 text-red-200 ring-1 ring-red-400/40'
-            }`}
-          >
-            {myState.solved
-              ? '¡Adivinaste! Esperando a los demás…'
-              : 'Te quedaste sin vidas. Espera el final de la ronda.'}
+        <div className="flex flex-col gap-4 lg:grid lg:grid-cols-2 lg:gap-8">
+          <div className="flex flex-col items-center gap-4">
+            <HangmanCanvas livesRemaining={myState.livesRemaining} />
+            <OpponentsBar
+              players={players}
+              myPlayerId={myPlayerId}
+              opponents={opponents}
+              round={round}
+            />
           </div>
-        )}
 
-        <Keyboard
-          guessed={myState.guessed}
-          maskedView={myState.maskedView}
-          disabled={myState.solved || dead || guessing}
-          onLetter={handleLetter}
-        />
+          <div className="flex flex-col gap-4">
+            <div data-testid="round-word-display">
+              <WordDisplay
+                maskedView={myState.maskedView}
+                solved={myState.solved}
+              />
+            </div>
+
+            {(myState.solved || dead) && (
+              <div
+                role="status"
+                className={`rounded-xl px-4 py-2 text-center text-sm ${
+                  myState.solved
+                    ? 'bg-emerald-500/10 text-emerald-200 ring-1 ring-emerald-400/40'
+                    : 'bg-red-500/10 text-red-200 ring-1 ring-red-400/40'
+                }`}
+              >
+                {myState.solved
+                  ? '¡Adivinaste! Esperando a los demás…'
+                  : 'Te quedaste sin vidas. Espera el final de la ronda.'}
+              </div>
+            )}
+
+            <Keyboard
+              guessed={myState.guessed}
+              maskedView={myState.maskedView}
+              disabled={myState.solved || dead || guessing}
+              onLetter={handleLetter}
+            />
+          </div>
+        </div>
       </div>
     </section>
   );

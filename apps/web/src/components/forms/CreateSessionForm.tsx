@@ -64,9 +64,10 @@ export default function CreateSessionForm() {
   return (
     <form
       onSubmit={onSubmit}
-      className="mx-auto flex w-full max-w-md flex-col gap-5 rounded-2xl bg-white/5 p-6 shadow-xl ring-1 ring-white/10 backdrop-blur-md"
+      className="mx-auto flex w-full max-w-md flex-col gap-5 rounded-2xl bg-white/5 p-6 shadow-xl ring-1 ring-white/10 backdrop-blur-md md:max-w-lg lg:max-w-xl"
+      data-testid="create-session-form"
     >
-      <h1 className="text-2xl font-bold tracking-tight text-white">
+      <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">
         Crear partida
       </h1>
 
@@ -82,6 +83,7 @@ export default function CreateSessionForm() {
           autoComplete="given-name"
           className="rounded-lg bg-slate-900 px-4 py-3 text-base text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-400"
           placeholder="Ej: Luis"
+          data-testid="host-name-input"
         />
       </label>
 
@@ -94,6 +96,7 @@ export default function CreateSessionForm() {
           value={totalRounds}
           onChange={(e) => setTotalRounds(Number(e.target.value))}
           className="accent-amber-400"
+          data-testid="total-rounds-input"
         />
         <div className="flex justify-between text-xs text-slate-400">
           <span>{MIN_ROUNDS}</span>
@@ -112,6 +115,7 @@ export default function CreateSessionForm() {
                 key={opt.slug}
                 onClick={() => setCategory(opt.slug)}
                 aria-pressed={selected}
+                data-testid={`category-${opt.slug}`}
                 className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm transition ${
                   selected
                     ? 'border-amber-400 bg-amber-400/10 text-amber-200'
@@ -141,6 +145,7 @@ export default function CreateSessionForm() {
         type="submit"
         disabled={submitting}
         className="rounded-xl bg-amber-400 px-4 py-3 text-base font-semibold text-slate-950 shadow-md transition hover:bg-amber-300 disabled:opacity-60"
+        data-testid="create-session-submit"
       >
         {submitting ? 'Creando…' : 'Crear sala'}
       </button>

@@ -34,7 +34,9 @@
       "Bash(curl -s -o /dev/null -w \"Web /host → %{http_code}\\\\n\" http://localhost:4321/host)",
       "Bash(curl -s -o /dev/null -w \"categorías → %{http_code}\\\\n\" http://localhost:3000/categories)",
       "Bash(curl -s -o /dev/null -w \"Web /join → %{http_code}\\\\n\" http://localhost:4321/join)",
-      "Bash(curl -s -o /dev/null -w \"Web /play/AAAAAA → %{http_code}\\\\n\" http://localhost:4321/play/AAAAAA)"
+      "Bash(curl -s -o /dev/null -w \"Web /play/AAAAAA → %{http_code}\\\\n\" http://localhost:4321/play/AAAAAA)",
+      "Bash(pnpm --filter @ahorcado/e2e exec playwright install chromium)",
+      "Bash(pnpm test:e2e)"
     ]
   }
 }

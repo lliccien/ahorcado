@@ -280,6 +280,34 @@ The production setup includes:
 - Automatic restart policies
 - Optimized Node.js production builds
 
+## 🧪 Tests E2E con Playwright
+
+El monorepo incluye un workspace `tests/e2e` con tests E2E que simulan dos navegadores jugando una partida completa.
+
+```bash
+# 1. Levantar Postgres + Redis y seedear palabras
+make dev-up
+pnpm --filter api seed
+
+# 2. Arrancar la app en otra terminal
+pnpm dev
+
+# 3. Instalar el navegador de Playwright (solo la primera vez)
+pnpm --filter @ahorcado/e2e exec playwright install chromium
+
+# 4. Correr los tests
+pnpm test:e2e
+
+# 5. Ver el reporte HTML si algo falla
+pnpm --filter @ahorcado/e2e report
+```
+
+El test principal `tests/e2e/tests/three-rounds.spec.ts` cubre:
+- Crear sala como host y unirse como invitado.
+- Jugar 3 rondas, leyendo la palabra desde Redis para acertarla.
+- Validar que aparece el `<FinalLeaderboard>` al terminar la última ronda.
+- Aserción del fondo cuadriculado (`notebook-grid.svg`).
+
 ## 🤝 Contributing
 
 1. Fork the repository

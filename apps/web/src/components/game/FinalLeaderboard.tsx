@@ -18,12 +18,15 @@ export default function FinalLeaderboard({
   const wonByMe = first && first.playerId === myPlayerId;
 
   return (
-    <section className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 pb-10 pt-6 text-slate-100">
+    <section
+      className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 pb-10 pt-6 text-slate-100 md:max-w-xl lg:max-w-2xl"
+      data-testid="final-leaderboard"
+    >
       <header className="flex flex-col items-center gap-2 text-center">
-        <span className="text-5xl" aria-hidden>
+        <span className="text-5xl md:text-6xl lg:text-7xl" aria-hidden>
           🏆
         </span>
-        <h2 className="text-2xl font-extrabold">
+        <h2 className="text-2xl font-extrabold md:text-3xl lg:text-4xl">
           {wonByMe
             ? '¡Ganaste la partida!'
             : champion
@@ -39,6 +42,7 @@ export default function FinalLeaderboard({
         {sorted.map((entry, idx) => (
           <li
             key={entry.playerId}
+            data-testid="final-leaderboard-row"
             className={`flex items-center gap-3 rounded-xl px-3 py-3 ${
               idx === 0
                 ? 'bg-amber-400/15 ring-1 ring-amber-300/50'
@@ -67,6 +71,7 @@ export default function FinalLeaderboard({
       <a
         href="/host"
         className="rounded-2xl bg-amber-400 px-5 py-4 text-center text-lg font-semibold text-slate-950 shadow-md transition hover:bg-amber-300"
+        data-testid="final-leaderboard-new-game"
       >
         Nueva partida
       </a>

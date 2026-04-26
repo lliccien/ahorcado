@@ -34,7 +34,7 @@ export default function WordDisplay({ maskedView, solved = false }: Props) {
           {word.map(({ ch, idx }) => (
             <span
               key={`${idx}-${ch ?? 'blank'}`}
-              className={`flex h-12 w-9 items-end justify-center border-b-4 pb-1 font-mono text-3xl uppercase transition-colors sm:h-14 sm:w-10 sm:text-4xl ${
+              className={`flex h-12 w-9 items-end justify-center border-b-4 pb-1 font-mono text-3xl uppercase transition-colors sm:h-14 sm:w-10 sm:text-4xl md:h-16 md:w-12 md:text-5xl ${
                 ch
                   ? solved
                     ? 'border-emerald-400 text-emerald-300'

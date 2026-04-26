@@ -21,7 +21,7 @@ export default function OpponentsBar({
   const others = players.filter((p) => p.id !== myPlayerId);
   if (others.length === 0) return null;
   return (
-    <div className="flex w-full gap-2 overflow-x-auto pb-1">
+    <div className="flex w-full gap-2 overflow-x-auto pb-1 lg:flex-wrap lg:overflow-visible">
       {others.map((p) => {
         const op = opponents[p.id];
         const lives = op?.livesRemaining ?? LIVES_PER_ROUND;

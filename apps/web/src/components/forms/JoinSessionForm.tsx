@@ -68,9 +68,10 @@ export default function JoinSessionForm({ initialCode = '' }: Props) {
   return (
     <form
       onSubmit={onSubmit}
-      className="mx-auto flex w-full max-w-md flex-col gap-5 rounded-2xl bg-white/5 p-6 shadow-xl ring-1 ring-white/10 backdrop-blur-md"
+      className="mx-auto flex w-full max-w-md flex-col gap-5 rounded-2xl bg-white/5 p-6 shadow-xl ring-1 ring-white/10 backdrop-blur-md md:max-w-lg lg:max-w-xl"
+      data-testid="join-session-form"
     >
-      <h1 className="text-2xl font-bold tracking-tight text-white">
+      <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">
         Unirse a una partida
       </h1>
 
@@ -95,6 +96,7 @@ export default function JoinSessionForm({ initialCode = '' }: Props) {
           required
           placeholder="ABC123"
           className="rounded-lg bg-slate-900 px-4 py-3 text-center text-2xl font-mono uppercase tracking-[0.4em] text-white placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-amber-400"
+          data-testid="join-code-input"
         />
       </label>
 
@@ -110,6 +112,7 @@ export default function JoinSessionForm({ initialCode = '' }: Props) {
           autoComplete="given-name"
           className="rounded-lg bg-slate-900 px-4 py-3 text-base text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-400"
           placeholder="Ej: María"
+          data-testid="join-name-input"
         />
       </label>
 
@@ -126,6 +129,7 @@ export default function JoinSessionForm({ initialCode = '' }: Props) {
         type="submit"
         disabled={submitting}
         className="rounded-xl bg-amber-400 px-4 py-3 text-base font-semibold text-slate-950 shadow-md transition hover:bg-amber-300 disabled:opacity-60"
+        data-testid="join-submit"
       >
         {submitting ? 'Validando…' : 'Entrar'}
       </button>

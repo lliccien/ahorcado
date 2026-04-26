@@ -74,8 +74,8 @@ export default function LobbyView({
   const canStart = connectedCount >= MIN_PLAYERS_TO_START;
 
   return (
-    <section className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 pb-8 pt-6 text-slate-100">
-      <header className="flex flex-col items-center gap-2 text-center">
+    <section className="mx-auto grid w-full max-w-md grid-cols-1 gap-6 px-4 pb-8 pt-6 text-slate-100 md:max-w-xl lg:max-w-2xl lg:grid-cols-2 lg:gap-8">
+      <header className="flex flex-col items-center gap-2 text-center lg:items-start lg:text-left">
         <p className="text-xs uppercase tracking-widest text-amber-300">
           Sala creada — esperando jugadores
         </p>
@@ -83,7 +83,8 @@ export default function LobbyView({
           type="button"
           onClick={copyCode}
           aria-label="Copiar código de sala"
-          className="select-all rounded-2xl border border-amber-400/40 bg-amber-400/10 px-6 py-3 font-mono text-4xl tracking-[0.5em] text-amber-300 transition hover:bg-amber-400/20"
+          className="select-all rounded-2xl border border-amber-400/40 bg-amber-400/10 px-6 py-3 font-mono text-4xl tracking-[0.5em] text-amber-300 transition hover:bg-amber-400/20 md:text-5xl"
+          data-testid="lobby-code"
         >
           {session.code}
         </button>
@@ -105,7 +106,7 @@ export default function LobbyView({
         </div>
       </header>
 
-      <dl className="grid grid-cols-2 gap-3 rounded-2xl bg-white/5 p-4 ring-1 ring-white/10">
+      <dl className="grid grid-cols-2 gap-3 rounded-2xl bg-white/5 p-4 ring-1 ring-white/10 lg:col-start-1">
         <div className="flex flex-col">
           <dt className="text-[11px] uppercase tracking-widest text-slate-400">
             Rondas
@@ -122,7 +123,7 @@ export default function LobbyView({
         </div>
       </dl>
 
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3 lg:col-start-2 lg:row-span-2">
         <h2 className="text-sm font-semibold uppercase tracking-widest text-slate-300">
           Jugadores ({players.length})
         </h2>
@@ -132,6 +133,7 @@ export default function LobbyView({
             return (
               <li
                 key={p.id}
+                data-testid="lobby-player"
                 className={`flex items-center gap-3 rounded-xl border px-3 py-2 ${
                   isMe
                     ? 'border-amber-400/40 bg-amber-400/5'
@@ -166,12 +168,13 @@ export default function LobbyView({
       </div>
 
       {isHost ? (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 lg:col-start-1">
           <button
             type="button"
             onClick={handleStart}
             disabled={!canStart || starting}
             className="rounded-xl bg-amber-400 px-4 py-3 text-base font-semibold text-slate-950 shadow-md transition hover:bg-amber-300 disabled:bg-slate-700/60 disabled:text-slate-300"
+            data-testid="lobby-start-btn"
           >
             {starting
               ? 'Iniciando…'
@@ -186,7 +189,7 @@ export default function LobbyView({
           )}
         </div>
       ) : (
-        <p className="text-center text-sm text-slate-400">
+        <p className="text-center text-sm text-slate-400 lg:col-start-1">
           Esperando que el host inicie la partida…
         </p>
       )}

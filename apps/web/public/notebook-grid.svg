@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <defs>
+    <pattern id="cell" x="0" y="0" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M 32 0 L 0 0 0 32" fill="none" stroke="#1e293b" stroke-width="1" stroke-opacity="0.55"/>
+    </pattern>
+  </defs>
+  <rect width="100%" height="100%" fill="#0b1120"/>
+  <rect width="100%" height="100%" fill="url(#cell)"/>
+  <g stroke="#334155" stroke-opacity="0.45" stroke-width="1.2" fill="none">
+    <path d="M 0 0 L 128 0"/>
+    <path d="M 0 128 L 128 128"/>
+    <path d="M 0 0 L 0 128"/>
+    <path d="M 128 0 L 128 128"/>
+  </g>
+</svg>

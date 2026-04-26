@@ -47,8 +47,11 @@ export default function RoundResultModal({
   const wonByMe = payload.winnerId !== null && payload.winnerId === myPlayerId;
 
   return (
-    <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-2xl bg-slate-900 p-6 text-slate-100 shadow-2xl ring-1 ring-white/10">
+    <div
+      className="fixed inset-0 z-30 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+      data-testid="round-result-modal"
+    >
+      <div className="w-full max-w-md rounded-2xl bg-slate-900/90 p-6 text-slate-100 shadow-2xl ring-1 ring-white/10 backdrop-blur-md">
         <header className="mb-4 flex flex-col items-center gap-1 text-center">
           <p className="text-xs uppercase tracking-widest text-slate-400">
             Ronda {payload.roundNumber} · resultado
@@ -72,7 +75,10 @@ export default function RoundResultModal({
           <span className="text-[11px] uppercase tracking-widest text-slate-400">
             La palabra era
           </span>
-          <span className="font-mono text-2xl uppercase tracking-widest text-amber-200">
+          <span
+            className="font-mono text-2xl uppercase tracking-widest text-amber-200"
+            data-testid="round-result-word"
+          >
             {payload.word}
           </span>
         </div>
@@ -104,6 +110,7 @@ export default function RoundResultModal({
             onClick={onAdvance}
             disabled={!isHost}
             className="w-full rounded-xl bg-amber-400 px-4 py-3 font-semibold text-slate-950 disabled:opacity-50"
+            data-testid="round-result-next-btn"
           >
             {isHost ? 'Ver resultado final' : 'Esperando al host…'}
           </button>
@@ -112,6 +119,7 @@ export default function RoundResultModal({
             type="button"
             onClick={onAdvance}
             className="w-full rounded-xl bg-amber-400 px-4 py-3 font-semibold text-slate-950"
+            data-testid="round-result-next-btn"
           >
             Siguiente ronda ({secondsLeft}s)
           </button>

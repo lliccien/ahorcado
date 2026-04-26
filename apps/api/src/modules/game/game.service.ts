@@ -617,6 +617,7 @@ export class GameService {
       sessionCode: state.code,
       leaderboard,
       totalRounds: state.totalRounds,
+      session: finalState,
     };
   }
 

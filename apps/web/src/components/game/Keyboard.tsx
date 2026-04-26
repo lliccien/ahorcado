@@ -42,7 +42,7 @@ export default function Keyboard({
   }, [guessedSet, onLetter, disabled]);
 
   return (
-    <div className="flex w-full flex-col items-center gap-1.5">
+    <div className="mx-auto flex w-full flex-col items-center gap-1.5 lg:max-w-xl">
       {ROWS.map((row, ri) => (
         <div key={ri} className="flex w-full justify-center gap-1.5">
           {row.map((letter) => {
@@ -57,7 +57,8 @@ export default function Keyboard({
                 disabled={tried || disabled}
                 aria-pressed={tried}
                 aria-label={`Letra ${letter.toUpperCase()}${correct ? ' (acierto)' : wrong ? ' (fallo)' : ''}`}
-                className={`flex h-11 min-w-[2.25rem] flex-1 items-center justify-center rounded-md font-mono text-base font-semibold uppercase transition sm:h-12 sm:min-w-[2.5rem] sm:text-lg ${
+                data-testid={`keyboard-letter-${letter}`}
+                className={`flex h-11 min-w-[2.25rem] flex-1 items-center justify-center rounded-md font-mono text-base font-semibold uppercase transition sm:h-12 sm:min-w-[2.5rem] sm:text-lg md:h-14 md:text-xl ${
                   correct
                     ? 'bg-emerald-500 text-white'
                     : wrong

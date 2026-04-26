@@ -18,6 +18,8 @@
     "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,md,json}\"",
     "type-check": "turbo run type-check",
+    "test:e2e": "pnpm --filter @ahorcado/e2e test",
+    "test:e2e:ui": "pnpm --filter @ahorcado/e2e test:ui",
     "clean": "turbo run clean && rm -rf node_modules"
   },
   "devDependencies": {
