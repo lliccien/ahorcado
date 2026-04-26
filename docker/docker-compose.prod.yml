@@ -1,46 +1,78 @@
 # Compose para Dokploy (camino idiomático con Traefik):
-#  - Solo `web` y `api` — sin Caddy. Traefik (instalado por Dokploy a
-#    nivel host) se encarga del TLS y el routing por dominio/path.
-#  - Ambos servicios se conectan a `dokploy-network` (red externa
-#    creada por Dokploy) además de la red default del stack para que
-#    Traefik los descubra y `web` siga pudiendo hablar con `api` por
-#    DNS interno (`api:3000`) si lo necesitara.
+#  - `web` y `api` se exponen vía dominios configurados en la UI de Dokploy.
+#  - `db` (Postgres) y `redis` corren dentro del propio stack, sin ningún
+#    expose externo. Solo la `api` los alcanza por sus nombres internos.
+#  - Ambos servicios externos (web y api) se conectan a `dokploy-network`
+#    (red externa creada por Dokploy) para que Traefik los descubra.
 #  - Routing del navegador (mismo dominio):
 #      /            → web   (Astro SSR)
-#      /api/*       → api   (Dokploy lo configura con stripPath)
-#      /socket.io/* → api   (sin stripPath; Socket.IO necesita su path)
+#      /api/*       → api   (configurar Strip Path = ON en la UI)
+#      /socket.io/* → api   (Strip Path = OFF, Socket.IO necesita su path)
 #
-# En la UI de Dokploy → Domains, crea 3 entradas con el mismo Host
-# apuntando al mismo puerto interno 3000 de cada servicio.
+# Variables que debes definir en la pestaña Environment de Dokploy:
+#   DB_PASSWORD=<contraseña que quieras>
+# Opcionales (con defaults sensatos):
+#   DB_USERNAME, DB_NAME, CORS_ORIGIN
 
 services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${DB_USERNAME:-ahorcado}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD requerido}
+      POSTGRES_DB: ${DB_NAME:-ahorcado}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
   api:
     build:
       context: ..
       dockerfile: docker/Dockerfile.api
     environment:
       NODE_ENV: production
-      DB_HOST: ${DB_HOST}
-      DB_PORT: ${DB_PORT:-5432}
-      DB_USERNAME: ${DB_USERNAME}
-      DB_PASSWORD: ${DB_PASSWORD}
-      DB_NAME: ${DB_NAME}
-      REDIS_HOST: ${REDIS_HOST}
-      REDIS_PORT: ${REDIS_PORT:-6379}
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USERNAME: ${DB_USERNAME:-ahorcado}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD requerido}
+      DB_NAME: ${DB_NAME:-ahorcado}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
       # En prod el navegador entra por el mismo dominio vía Traefik,
-      # así que CORS no es necesario. Define este valor solo si vas a
-      # exponer el API a otro origen distinto (lista separada por comas).
+      # así que CORS no es necesario. Solo defínelo si vas a exponer
+      # el API a otro origen distinto (lista separada por comas).
       CORS_ORIGIN: ${CORS_ORIGIN:-}
     expose:
       - "3000"
     networks:
       - default
       - dokploy-network
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     restart: unless-stopped
     healthcheck:
-      # Usamos node directamente en lugar de wget: más portable entre
-      # imágenes de Node (alpine/bookworm-slim) y nos da control sobre
-      # el timeout y el código de salida.
       test:
         - "CMD"
         - "node"
@@ -87,3 +119,7 @@ networks:
   default:
   dokploy-network:
     external: true
+
+volumes:
+  postgres_data:
+  redis_data:
