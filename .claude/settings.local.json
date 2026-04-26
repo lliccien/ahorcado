@@ -11,7 +11,17 @@
       "Bash(grep -qE \"API escuchando|Bootstrap.*listening|Error|UnhandledPromiseRejection|Cannot find|EADDRINUSE\" \"C:\\\\\\\\Users\\\\\\\\ludwr\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\claude\\\\\\\\c--Users-ludwr-www-ahorcado\\\\\\\\cfbbb893-087b-48a1-bb4e-51b9b5e8abcf\\\\\\\\tasks\\\\\\\\bmfcqugmk.output\")",
       "Bash(pnpm --filter @ahorcado/shared build)",
       "Bash(curl -s http://localhost:3000/health)",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "PowerShell($conn = Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue; if \\($conn\\) { $conn | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue; Write-Output \\(\"kill \" + $_.OwningProcess\\) } } else { Write-Output \"ningún proceso escucha en 3000\" })",
+      "Bash(curl -s -X POST http://localhost:3000/sessions -H \"Content-Type: application/json\" -d '{\"totalRounds\":3,\"category\":\"animales\",\"hostName\":\"Luis\"}')",
+      "Bash(curl -s http://localhost:3000/sessions/98WYHB)",
+      "Bash(curl -s http://localhost:3000/sessions/NOEXIS)",
+      "Bash(curl -s -o /dev/null -w \"/ → %{http_code}\\\\n\" http://localhost:4321/)",
+      "Bash(curl -s -o /dev/null -w \"/host → %{http_code}\\\\n\" http://localhost:4321/host)",
+      "Bash(curl -s -o /dev/null -w \"/join → %{http_code}\\\\n\" http://localhost:4321/join)",
+      "Bash(curl -s -o /dev/null -w \"/play/ABCDEF → %{http_code}\\\\n\" http://localhost:4321/play/ABCDEF)",
+      "Bash(curl -s 'http://localhost:4321/')",
+      "Bash(curl -s 'http://localhost:4321/host')"
     ]
   }
 }

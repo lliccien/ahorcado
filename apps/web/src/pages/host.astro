@@ -1,0 +1,16 @@
+---
+import Layout from '../layouts/Layout.astro';
+import CreateSessionForm from '../components/forms/CreateSessionForm.tsx';
+---
+
+<Layout title="Crear partida — Ahorcado">
+  <main class="flex min-h-dvh flex-col items-center justify-center px-4 py-8">
+    <CreateSessionForm client:load />
+    <a
+      href="/"
+      class="mt-6 text-sm text-slate-400 underline hover:text-slate-200"
+    >
+      ← Volver
+    </a>
+  </main>
+</Layout>

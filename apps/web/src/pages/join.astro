@@ -1,0 +1,18 @@
+---
+import Layout from '../layouts/Layout.astro';
+import JoinSessionForm from '../components/forms/JoinSessionForm.tsx';
+
+const initialCode = (Astro.url.searchParams.get('code') ?? '').toUpperCase();
+---
+
+<Layout title="Unirse — Ahorcado">
+  <main class="flex min-h-dvh flex-col items-center justify-center px-4 py-8">
+    <JoinSessionForm client:load initialCode={initialCode} />
+    <a
+      href="/"
+      class="mt-6 text-sm text-slate-400 underline hover:text-slate-200"
+    >
+      ← Volver
+    </a>
+  </main>
+</Layout>

@@ -8,6 +8,7 @@ import path from 'path';
 import { AppController } from './app.controller';
 import { RedisModule } from './modules/redis/redis.module';
 import { RealtimeModule } from './modules/realtime/realtime.module';
+import { SessionsModule } from './modules/sessions/sessions.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { RealtimeModule } from './modules/realtime/realtime.module';
     TerminusModule,
     HttpModule,
     RedisModule,
+    SessionsModule,
     RealtimeModule,
   ],
   controllers: [AppController],

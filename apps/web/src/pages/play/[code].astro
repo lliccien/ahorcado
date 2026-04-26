@@ -1,0 +1,20 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import GameRoom from '../../components/game/GameRoom.tsx';
+
+const rawCode = Astro.params.code ?? '';
+const code = rawCode.toUpperCase();
+const isHost = Astro.url.searchParams.get('host') === '1';
+const initialName = Astro.url.searchParams.get('name') ?? '';
+---
+
+<Layout title={`Sala ${code} — Ahorcado`}>
+  <main class="flex min-h-dvh flex-col">
+    <GameRoom
+      client:only="react"
+      code={code}
+      isHost={isHost}
+      initialName={initialName}
+    />
+  </main>
+</Layout>
