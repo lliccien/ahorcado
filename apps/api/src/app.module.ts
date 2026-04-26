@@ -29,6 +29,10 @@ import { WordsModule } from './modules/words/words.module';
       database: process.env.DB_NAME,
       autoLoadEntities: true,
       synchronize: true,
+      // Si Postgres tarda en estar listo (típico al levantar el stack
+      // entero), reintentamos la conexión durante ~60s antes de morir.
+      retryAttempts: 20,
+      retryDelay: 3000,
     }),
 
     TerminusModule,

@@ -79,4 +79,13 @@ async function bootstrap() {
   logger.log(`Swagger: http://localhost:${port}/api/docs`);
   logger.log(`WebSocket namespace /game listo`);
 }
-void bootstrap();
+
+bootstrap().catch((err) => {
+  // Si NestJS muere durante el bootstrap (DB inalcanzable, env var faltante,
+  // Redis no responde, etc.) lo dejamos visible en stdout para que aparezca
+  // en los logs del container y exitamos con código 1 para que Docker
+  // reinicie el servicio en lugar de quedar "running pero sin servidor".
+  // eslint-disable-next-line no-console
+  console.error('[Bootstrap] Fatal error:', err);
+  process.exit(1);
+});
