@@ -33,7 +33,7 @@ type Stage = 'connecting' | 'needsName' | 'joining' | 'ready' | 'fatal';
 
 export default function GameRoom({ code, initialName = '', isHost = false }: Props) {
   const upperCode = code.toUpperCase();
-  const { socket, joinSession, startSession, nextRound, guess, resync } =
+  const { socket, joinSession, startSession, nextRound, guess, resync, leaveSession } =
     useGameSocket();
 
   const session = useGameStore((s) => s.session);
@@ -197,6 +197,17 @@ export default function GameRoom({ code, initialName = '', isHost = false }: Pro
     [guess],
   );
 
+  const handleLeave = useCallback(() => {
+    leaveSession();
+    clearPlayerId(upperCode);
+    setMyPlayerId(null);
+    setSession(null);
+    setPlayers([]);
+    if (typeof window !== 'undefined') {
+      window.location.href = '/';
+    }
+  }, [leaveSession, upperCode, setMyPlayerId, setSession, setPlayers]);
+
   // -- Renders --------------------------------------------------------
   if (stage === 'fatal') {
     return (
@@ -355,6 +366,7 @@ export default function GameRoom({ code, initialName = '', isHost = false }: Pro
           scoreboard={scoreboard}
           guessing={guessing}
           onLetter={handleLetter}
+          onLeave={handleLeave}
         />
       ) : (
         <section className="mx-auto flex max-w-md flex-col items-center gap-3 p-6 text-slate-200">

@@ -5,6 +5,11 @@ interface Props {
   className?: string;
 }
 
+const FADE_IN = {
+  opacity: 1,
+  animation: 'hangmanPartIn 320ms ease-out',
+} as const;
+
 /**
  * 8 vidas → 8 errores antes del game over.
  * El número de partes a dibujar es `errors = LIVES_PER_ROUND - lives`.
@@ -30,13 +35,22 @@ export default function HangmanCanvas({ livesRemaining, className = '' }: Props)
       aria-label={`Ahorcado: ${errors} de ${LIVES_PER_ROUND} errores`}
       className={`mx-auto h-44 w-44 sm:h-56 sm:w-56 ${className}`}
     >
+      <style>{`
+        @keyframes hangmanPartIn {
+          from { opacity: 0; transform: scale(0.6); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes hangmanXBlink {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.35; }
+        }
+      `}</style>
       {/* Suelo y horca (siempre visibles) */}
       <line x1="20" y1="210" x2="180" y2="210" stroke={stroke} strokeWidth="4" strokeLinecap="round" />
       <line x1="50" y1="210" x2="50" y2="20" stroke={stroke} strokeWidth="4" strokeLinecap="round" />
       <line x1="50" y1="20" x2="140" y2="20" stroke={stroke} strokeWidth="4" strokeLinecap="round" />
       <line x1="140" y1="20" x2="140" y2="40" stroke={stroke} strokeWidth="4" strokeLinecap="round" />
 
-      {/* 1 — cabeza */}
       {errors >= 1 && (
         <circle
           cx="140"
@@ -45,15 +59,22 @@ export default function HangmanCanvas({ livesRemaining, className = '' }: Props)
           fill="none"
           stroke={dead ? '#ef4444' : stroke}
           strokeWidth="4"
+          style={FADE_IN}
         />
       )}
 
-      {/* 2 — cuello / cuerda al cuello (línea entre travesaño y cabeza) */}
       {errors >= 2 && (
-        <line x1="140" y1="40" x2="140" y2="40" stroke={stroke} strokeWidth="4" />
+        <line
+          x1="140"
+          y1="40"
+          x2="140"
+          y2="40"
+          stroke={stroke}
+          strokeWidth="4"
+          style={FADE_IN}
+        />
       )}
 
-      {/* 3 — torso */}
       {errors >= 3 && (
         <line
           x1="140"
@@ -63,10 +84,10 @@ export default function HangmanCanvas({ livesRemaining, className = '' }: Props)
           stroke={dead ? '#ef4444' : stroke}
           strokeWidth="4"
           strokeLinecap="round"
+          style={FADE_IN}
         />
       )}
 
-      {/* 4 — brazo izquierdo */}
       {errors >= 4 && (
         <line
           x1="140"
@@ -76,10 +97,10 @@ export default function HangmanCanvas({ livesRemaining, className = '' }: Props)
           stroke={dead ? '#ef4444' : stroke}
           strokeWidth="4"
           strokeLinecap="round"
+          style={FADE_IN}
         />
       )}
 
-      {/* 5 — brazo derecho */}
       {errors >= 5 && (
         <line
           x1="140"
@@ -89,10 +110,10 @@ export default function HangmanCanvas({ livesRemaining, className = '' }: Props)
           stroke={dead ? '#ef4444' : stroke}
           strokeWidth="4"
           strokeLinecap="round"
+          style={FADE_IN}
         />
       )}
 
-      {/* 6 — pierna izquierda */}
       {errors >= 6 && (
         <line
           x1="140"
@@ -102,10 +123,10 @@ export default function HangmanCanvas({ livesRemaining, className = '' }: Props)
           stroke={dead ? '#ef4444' : stroke}
           strokeWidth="4"
           strokeLinecap="round"
+          style={FADE_IN}
         />
       )}
 
-      {/* 7 — pierna derecha */}
       {errors >= 7 && (
         <line
           x1="140"
@@ -115,12 +136,20 @@ export default function HangmanCanvas({ livesRemaining, className = '' }: Props)
           stroke={dead ? '#ef4444' : stroke}
           strokeWidth="4"
           strokeLinecap="round"
+          style={FADE_IN}
         />
       )}
 
-      {/* 8 — ojos X (muerto) */}
       {errors >= 8 && (
-        <g stroke="#ef4444" strokeWidth="3" strokeLinecap="round">
+        <g
+          stroke="#ef4444"
+          strokeWidth="3"
+          strokeLinecap="round"
+          style={{
+            animation:
+              'hangmanPartIn 320ms ease-out, hangmanXBlink 1.4s ease-in-out infinite 320ms',
+          }}
+        >
           <line x1="131" y1="52" x2="138" y2="59" />
           <line x1="138" y1="52" x2="131" y2="59" />
           <line x1="142" y1="52" x2="149" y2="59" />

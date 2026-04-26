@@ -27,6 +27,7 @@ import {
 import { API_BASE_URL } from '../lib/api';
 import { setPlayerId } from '../lib/storage';
 import { useGameStore } from '../stores/gameStore';
+import { useToastStore } from '../stores/toastStore';
 
 type GameSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
@@ -121,6 +122,15 @@ export function useGameSocket(): UseGameSocketReturn {
       setPlayers(p.players);
       const cur = useGameStore.getState().session;
       if (cur) setSession({ ...cur, hostId: p.hostId });
+      const me = useGameStore.getState().myPlayerId;
+      const newHost = p.players.find((pl) => pl.id === p.hostId);
+      if (newHost) {
+        const text =
+          me === p.hostId
+            ? '¡Ahora tú eres el host!'
+            : `${newHost.name} es el nuevo host`;
+        useToastStore.getState().push(text, 'info');
+      }
     };
 
     const onStateSync = (snap: SessionSnapshot) => applySnapshot(snap);
@@ -140,7 +150,10 @@ export function useGameSocket(): UseGameSocketReturn {
       setFinalLeaderboard(p);
       setScoreboard(p.leaderboard);
     };
-    const onError = (e: ErrorPayload) => setError(e);
+    const onError = (e: ErrorPayload) => {
+      setError(e);
+      useToastStore.getState().push(e.message, 'error');
+    };
 
     sock.on('connect', onConnect);
     sock.on('disconnect', onDisconnect);
@@ -209,6 +222,7 @@ export function useGameSocket(): UseGameSocketReturn {
         sock.emit('session:create', payload, (response) => {
           if (isErrorPayload(response)) {
             setError(response);
+            useToastStore.getState().push(response.message, 'error');
             resolve(response);
             return;
           }
@@ -224,6 +238,7 @@ export function useGameSocket(): UseGameSocketReturn {
         sock.emit('session:join', payload, (response) => {
           if (isErrorPayload(response)) {
             setError(response);
+            useToastStore.getState().push(response.message, 'error');
             resolve(response);
             return;
           }
@@ -243,7 +258,10 @@ export function useGameSocket(): UseGameSocketReturn {
       new Promise((resolve) => {
         setError(null);
         sock.emit('session:start', {}, (response) => {
-          if (response && isErrorPayload(response)) setError(response);
+          if (response && isErrorPayload(response)) {
+            setError(response);
+            useToastStore.getState().push(response.message, 'error');
+          }
           resolve(response ?? ({ ok: true } as { ok: true }));
         });
       });
@@ -252,7 +270,10 @@ export function useGameSocket(): UseGameSocketReturn {
       new Promise((resolve) => {
         setError(null);
         sock.emit('host:nextRound', {}, (response) => {
-          if (response && isErrorPayload(response)) setError(response);
+          if (response && isErrorPayload(response)) {
+            setError(response);
+            useToastStore.getState().push(response.message, 'error');
+          }
           resolve(response ?? ({ ok: true } as { ok: true }));
         });
       });
@@ -275,6 +296,19 @@ export function useGameSocket(): UseGameSocketReturn {
               ).length,
               solved: response.solved,
             });
+
+            // Feedback haptico (solo móviles soportados)
+            if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+              if (!response.hit) {
+                if (response.livesRemaining === 0) {
+                  navigator.vibrate([100, 50, 100, 50, 200]);
+                } else {
+                  navigator.vibrate(30);
+                }
+              } else if (response.solved) {
+                navigator.vibrate([60, 40, 60, 40, 120]);
+              }
+            }
           }
           resolve(response as GuessLetterResult);
         });

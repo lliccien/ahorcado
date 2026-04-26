@@ -1,6 +1,7 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import GameRoom from '../../components/game/GameRoom.tsx';
+import Overlays from '../../components/game/Overlays.tsx';
 
 const rawCode = Astro.params.code ?? '';
 const code = rawCode.toUpperCase();
@@ -10,6 +11,7 @@ const initialName = Astro.url.searchParams.get('name') ?? '';
 
 <Layout title={`Sala ${code} — Ahorcado`}>
   <main class="flex min-h-dvh flex-col">
+    <Overlays client:only="react" />
     <GameRoom
       client:only="react"
       code={code}

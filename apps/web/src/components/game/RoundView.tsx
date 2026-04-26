@@ -15,6 +15,12 @@ import OpponentsBar from './OpponentsBar';
 import Scoreboard from './Scoreboard';
 import WordDisplay from './WordDisplay';
 
+function countLetters(mask: Array<string | null>): number {
+  let n = 0;
+  for (const ch of mask) if (ch !== ' ') n++;
+  return n;
+}
+
 interface Props {
   session: SessionState;
   round: RoundPublicState;
@@ -25,6 +31,7 @@ interface Props {
   scoreboard: ScoreboardEntry[];
   guessing: boolean;
   onLetter: (letter: string) => void;
+  onLeave: () => void;
 }
 
 export default function RoundView({
@@ -37,6 +44,7 @@ export default function RoundView({
   scoreboard,
   guessing,
   onLetter,
+  onLeave,
 }: Props) {
   const handleLetter = useCallback(
     (letter: string) => {
@@ -61,11 +69,28 @@ export default function RoundView({
       />
 
       <div className="mx-auto flex w-full max-w-md flex-col gap-4 px-3 pb-4">
-        <header className="flex items-center justify-between text-xs uppercase tracking-widest text-slate-400">
-          <span>Categoría</span>
-          <span className="rounded-full bg-amber-400/10 px-3 py-1 font-semibold text-amber-200">
-            {round.categoryName}
-          </span>
+        <header className="flex items-center justify-between gap-2 text-xs uppercase tracking-widest text-slate-400">
+          <button
+            type="button"
+            onClick={() => {
+              if (confirm('¿Salir de la partida?')) onLeave();
+            }}
+            className="rounded-full bg-white/5 px-3 py-1 text-[11px] text-slate-300 ring-1 ring-white/10 hover:bg-white/10"
+            aria-label="Salir de la partida"
+          >
+            Salir
+          </button>
+          <div className="flex items-center gap-1.5">
+            <span className="rounded-full bg-amber-400/10 px-3 py-1 font-semibold text-amber-200">
+              {round.categoryName}
+            </span>
+            <span
+              className="rounded-full bg-slate-800 px-2 py-1 font-mono text-[11px] text-slate-300"
+              title="Letras en la palabra"
+            >
+              {countLetters(myState.maskedView)} letras
+            </span>
+          </div>
         </header>
 
         <HangmanCanvas livesRemaining={myState.livesRemaining} />

@@ -26,7 +26,9 @@
       "Bash(pnpm seed *)",
       "PowerShell($conn = Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue; if \\($conn\\) { $conn | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue } } ; Write-Output \"ok\")",
       "Bash(curl -s -o /dev/null -w \"/categories → %{http_code}\\\\n\" http://localhost:3000/categories)",
-      "Bash(curl -s 'http://localhost:3000/categories?locale=es-419')"
+      "Bash(curl -s 'http://localhost:3000/categories?locale=es-419')",
+      "PowerShell($conn = Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue; if \\($conn\\) { $conn | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue } } ; $conn2 = Get-NetTCPConnection -LocalPort 4321 -State Listen -ErrorAction SilentlyContinue; if \\($conn2\\) { $conn2 | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue } } ; Write-Output \"ok\")",
+      "Bash(curl -s 'http://localhost:4321/play/ABCDEF')"
     ]
   }
 }
