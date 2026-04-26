@@ -26,6 +26,7 @@ import { GameService } from '../game/game.service';
 import { GuessLetterDto } from '../game/dto/guess-letter.dto';
 import { CreateSessionDto } from '../sessions/dto/create-session.dto';
 import { JoinSessionDto } from '../sessions/dto/join-session.dto';
+import { KickPlayerDto } from '../sessions/dto/kick-player.dto';
 import { SessionsService } from '../sessions/sessions.service';
 import { WsExceptionFilter } from './ws-exception.filter';
 
@@ -261,6 +262,81 @@ export class RealtimeGateway
           if (sd?.playerId === pid) {
             s.emit('round:started', { round: start.roundPublic, myState });
           }
+        }
+      }
+      return { ok: true };
+    } catch (err) {
+      return this.filter.toErrorPayload(err);
+    }
+  }
+
+  @SubscribeMessage('session:close')
+  async handleCloseSession(
+    @ConnectedSocket() client: Socket,
+  ): Promise<{ ok: true } | ErrorPayload> {
+    try {
+      const data = client.data as Partial<SocketData>;
+      if (!data?.sessionCode || !data.playerId) {
+        return {
+          code: ErrorCode.SESSION_NOT_FOUND,
+          message: 'Socket sin sesión asociada',
+        };
+      }
+      const { state } = await this.sessions.closeSession(
+        data.sessionCode,
+        data.playerId,
+      );
+      this.cancelAutoAdvance(data.sessionCode);
+      // Avisamos a todos los sockets en la sala antes de borrarla
+      this.server.to(roomName(data.sessionCode)).emit('session:closed', {
+        sessionCode: state.code,
+        reason: 'El host cerró la sala',
+      });
+      // Sacamos a los sockets del room
+      const sockets = await this.server
+        .in(roomName(data.sessionCode))
+        .fetchSockets();
+      for (const s of sockets) {
+        await s.leave(roomName(data.sessionCode));
+      }
+      return { ok: true };
+    } catch (err) {
+      return this.filter.toErrorPayload(err);
+    }
+  }
+
+  @SubscribeMessage('session:kickPlayer')
+  async handleKickPlayer(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() dto: KickPlayerDto,
+  ): Promise<{ ok: true } | ErrorPayload> {
+    try {
+      const data = client.data as Partial<SocketData>;
+      if (!data?.sessionCode || !data.playerId) {
+        return {
+          code: ErrorCode.SESSION_NOT_FOUND,
+          message: 'Socket sin sesión asociada',
+        };
+      }
+      const { players, targetId } = await this.sessions.kickPlayer(
+        data.sessionCode,
+        data.playerId,
+        dto.playerId,
+      );
+      // Notificar a todos en la sala (incluye al expulsado, que recibe esto y se desconecta de la room)
+      this.server.to(roomName(data.sessionCode)).emit('player:kicked', {
+        playerId: targetId,
+        players,
+      });
+      // Sacar al socket expulsado de la room (si está conectado)
+      const sockets = await this.server
+        .in(roomName(data.sessionCode))
+        .fetchSockets();
+      for (const s of sockets) {
+        const sd = s.data as Partial<SocketData> | undefined;
+        if (sd?.playerId === targetId) {
+          await s.leave(roomName(data.sessionCode));
+          (s.data as Partial<SocketData>).sessionCode = undefined;
         }
       }
       return { ok: true };

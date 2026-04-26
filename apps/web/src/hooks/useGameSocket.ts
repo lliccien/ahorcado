@@ -14,11 +14,13 @@ import {
   type JoinSessionPayload,
   type OpponentProgress,
   type PlayerJoinedPayload,
+  type PlayerKickedPayload,
   type PlayerLeftPayload,
   type PlayerReconnectedPayload,
   type RoundEndedPayload,
   type RoundStartedPayload,
   type ServerToClientEvents,
+  type SessionClosedPayload,
   type SessionSnapshot,
   type SessionState,
   type SessionStartedPayload,
@@ -56,6 +58,8 @@ export interface UseGameSocketReturn {
   nextRound: () => Promise<{ ok: true } | ErrorPayload>;
   guess: (letter: string) => Promise<GuessLetterResult | ErrorPayload>;
   resync: () => Promise<SessionSnapshot | ErrorPayload>;
+  closeSession: () => Promise<{ ok: true } | ErrorPayload>;
+  kickPlayer: (playerId: string) => Promise<{ ok: true } | ErrorPayload>;
 }
 
 export function useGameSocket(): UseGameSocketReturn {
@@ -135,6 +139,39 @@ export function useGameSocket(): UseGameSocketReturn {
 
     const onStateSync = (snap: SessionSnapshot) => applySnapshot(snap);
 
+    const onSessionClosed = (p: SessionClosedPayload) => {
+      const me = useGameStore.getState().myPlayerId;
+      const session = useGameStore.getState().session;
+      // Si soy el host (o cualquiera afectado), limpio el estado y aviso. La
+      // redirección la decide el componente GameRoom.
+      useToastStore
+        .getState()
+        .push(p.reason ?? 'La sala se cerró', 'warn', 5000);
+      // Marcar la sesión como cerrada vía evento dedicado del store
+      useGameStore.getState().setSessionClosed(true);
+      void session;
+      void me;
+    };
+
+    const onPlayerKicked = (p: PlayerKickedPayload) => {
+      const me = useGameStore.getState().myPlayerId;
+      setPlayers(p.players);
+      if (me === p.playerId) {
+        useToastStore
+          .getState()
+          .push('El host te expulsó de la sala', 'warn', 6000);
+        useGameStore.getState().setKickedFromSession(true);
+      } else {
+        const kicked = p.players.find((pl) => pl.id === p.playerId);
+        useToastStore
+          .getState()
+          .push(
+            kicked ? `${kicked.name} fue expulsado` : 'Un jugador fue expulsado',
+            'info',
+          );
+      }
+    };
+
     const onRoundStarted = (p: RoundStartedPayload) => {
       setCurrentRound(p.round);
       setMyRoundState(p.myState);
@@ -168,6 +205,8 @@ export function useGameSocket(): UseGameSocketReturn {
     sock.on('player:left', onPlayerLeft);
     sock.on('player:reconnected', onPlayerReconnected);
     sock.on('host:changed', onHostChanged);
+    sock.on('session:closed', onSessionClosed);
+    sock.on('player:kicked', onPlayerKicked);
     sock.on('round:started', onRoundStarted);
     sock.on('round:opponentProgress', onOpponentProgress);
     sock.on('round:ended', onRoundEnded);
@@ -188,6 +227,8 @@ export function useGameSocket(): UseGameSocketReturn {
       sock.off('player:left', onPlayerLeft);
       sock.off('player:reconnected', onPlayerReconnected);
       sock.off('host:changed', onHostChanged);
+      sock.off('session:closed', onSessionClosed);
+      sock.off('player:kicked', onPlayerKicked);
       sock.off('round:started', onRoundStarted);
       sock.off('round:opponentProgress', onOpponentProgress);
       sock.off('round:ended', onRoundEnded);
@@ -317,6 +358,30 @@ export function useGameSocket(): UseGameSocketReturn {
         });
       });
 
+    const closeSession: UseGameSocketReturn['closeSession'] = () =>
+      new Promise((resolve) => {
+        setError(null);
+        sock.emit('session:close', {}, (response) => {
+          if (response && isErrorPayload(response)) {
+            setError(response);
+            useToastStore.getState().push(response.message, 'error');
+          }
+          resolve(response ?? ({ ok: true } as { ok: true }));
+        });
+      });
+
+    const kickPlayer: UseGameSocketReturn['kickPlayer'] = (playerId) =>
+      new Promise((resolve) => {
+        setError(null);
+        sock.emit('session:kickPlayer', { playerId }, (response) => {
+          if (response && isErrorPayload(response)) {
+            setError(response);
+            useToastStore.getState().push(response.message, 'error');
+          }
+          resolve(response ?? ({ ok: true } as { ok: true }));
+        });
+      });
+
     const resync: UseGameSocketReturn['resync'] = () =>
       new Promise((resolve) => {
         sock.emit('state:resync', {}, (response) => {
@@ -346,6 +411,8 @@ export function useGameSocket(): UseGameSocketReturn {
       nextRound,
       guess,
       resync,
+      closeSession,
+      kickPlayer,
     };
   }, [
     setError,

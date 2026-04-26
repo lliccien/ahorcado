@@ -34,6 +34,11 @@ interface GameStoreState {
   lastRoundEnded: RoundEndedPayload | null;
   finalLeaderboard: GameFinishedPayload | null;
 
+  /** Cerrada por el host. El componente debe redirigir al usuario. */
+  sessionClosed: boolean;
+  /** Yo fui expulsado de la sala. Idem. */
+  kickedFromSession: boolean;
+
   setConnectionStatus: (status: ConnectionStatus) => void;
   setSession: (session: SessionState | null) => void;
   setPlayers: (players: Player[]) => void;
@@ -48,6 +53,8 @@ interface GameStoreState {
   setScoreboard: (entries: ScoreboardEntry[]) => void;
   setLastRoundEnded: (payload: RoundEndedPayload | null) => void;
   setFinalLeaderboard: (payload: GameFinishedPayload | null) => void;
+  setSessionClosed: (closed: boolean) => void;
+  setKickedFromSession: (kicked: boolean) => void;
 
   reset: () => void;
 }
@@ -64,6 +71,8 @@ const initial = {
   scoreboard: [] as ScoreboardEntry[],
   lastRoundEnded: null,
   finalLeaderboard: null,
+  sessionClosed: false,
+  kickedFromSession: false,
 };
 
 export const useGameStore = create<GameStoreState>((set, get) => ({
@@ -89,6 +98,8 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   setScoreboard: (scoreboard) => set({ scoreboard }),
   setLastRoundEnded: (lastRoundEnded) => set({ lastRoundEnded }),
   setFinalLeaderboard: (finalLeaderboard) => set({ finalLeaderboard }),
+  setSessionClosed: (sessionClosed) => set({ sessionClosed }),
+  setKickedFromSession: (kickedFromSession) => set({ kickedFromSession }),
 
   reset: () => set(initial),
 }));

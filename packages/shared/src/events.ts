@@ -4,10 +4,12 @@ import type {
   HostChangedPayload,
   OpponentProgress,
   Player,
+  PlayerKickedPayload,
   PlayerRoundState,
   RoundEndedPayload,
   RoundPublicState,
   ScoreboardEntry,
+  SessionClosedPayload,
   SessionSnapshot,
   SessionState,
 } from './types.js';
@@ -38,6 +40,10 @@ export interface JoinSessionAck {
 
 export interface GuessLetterPayload {
   letter: string;
+}
+
+export interface KickPlayerPayload {
+  playerId: string;
 }
 
 export interface GuessLetterResult {
@@ -81,9 +87,11 @@ export interface SessionStartedPayload {
 export interface ServerToClientEvents {
   'session:created': (payload: { code: string; session: SessionState }) => void;
   'session:started': (payload: SessionStartedPayload) => void;
+  'session:closed': (payload: SessionClosedPayload) => void;
   'player:joined': (payload: PlayerJoinedPayload) => void;
   'player:left': (payload: PlayerLeftPayload) => void;
   'player:reconnected': (payload: PlayerReconnectedPayload) => void;
+  'player:kicked': (payload: PlayerKickedPayload) => void;
   'host:changed': (payload: HostChangedPayload) => void;
   'round:started': (payload: RoundStartedPayload) => void;
   'round:guess:result': (payload: GuessLetterResult) => void;
@@ -106,6 +114,14 @@ export interface ClientToServerEvents {
   ) => void;
   'session:start': (
     payload: Record<string, never>,
+    ack?: (response: { ok: true } | ErrorPayload) => void,
+  ) => void;
+  'session:close': (
+    payload: Record<string, never>,
+    ack?: (response: { ok: true } | ErrorPayload) => void,
+  ) => void;
+  'session:kickPlayer': (
+    payload: KickPlayerPayload,
     ack?: (response: { ok: true } | ErrorPayload) => void,
   ) => void;
   'host:nextRound': (

@@ -33,8 +33,17 @@ type Stage = 'connecting' | 'needsName' | 'joining' | 'ready' | 'fatal';
 
 export default function GameRoom({ code, initialName = '', isHost = false }: Props) {
   const upperCode = code.toUpperCase();
-  const { socket, joinSession, startSession, nextRound, guess, resync, leaveSession } =
-    useGameSocket();
+  const {
+    socket,
+    joinSession,
+    startSession,
+    nextRound,
+    guess,
+    resync,
+    leaveSession,
+    closeSession,
+    kickPlayer,
+  } = useGameSocket();
 
   const session = useGameStore((s) => s.session);
   const players = useGameStore((s) => s.players);
@@ -53,6 +62,10 @@ export default function GameRoom({ code, initialName = '', isHost = false }: Pro
   const lastRoundEnded = useGameStore((s) => s.lastRoundEnded);
   const finalLeaderboard = useGameStore((s) => s.finalLeaderboard);
   const setLastRoundEnded = useGameStore((s) => s.setLastRoundEnded);
+  const sessionClosed = useGameStore((s) => s.sessionClosed);
+  const kickedFromSession = useGameStore((s) => s.kickedFromSession);
+  const setSessionClosed = useGameStore((s) => s.setSessionClosed);
+  const setKickedFromSession = useGameStore((s) => s.setKickedFromSession);
 
   const joinedRef = useRef(false);
   const lastJoinRef = useRef<{
@@ -208,6 +221,25 @@ export default function GameRoom({ code, initialName = '', isHost = false }: Pro
     }
   }, [leaveSession, upperCode, setMyPlayerId, setSession, setPlayers]);
 
+  // Si la sala fue cerrada por el host o yo fui expulsado, limpiar y volver
+  // a la portada. Pequeño delay para que el toast alcance a verse.
+  useEffect(() => {
+    if (!sessionClosed && !kickedFromSession) return;
+    clearPlayerId(upperCode);
+    const timer = setTimeout(() => {
+      setSessionClosed(false);
+      setKickedFromSession(false);
+      if (typeof window !== 'undefined') window.location.href = '/';
+    }, 1800);
+    return () => clearTimeout(timer);
+  }, [
+    sessionClosed,
+    kickedFromSession,
+    upperCode,
+    setSessionClosed,
+    setKickedFromSession,
+  ]);
+
   // -- Renders --------------------------------------------------------
   if (stage === 'fatal') {
     return (
@@ -342,6 +374,8 @@ export default function GameRoom({ code, initialName = '', isHost = false }: Pro
         myPlayerId={myPlayerId}
         isHost={userIsHost}
         onStart={handleStart}
+        onCloseSession={closeSession}
+        onKickPlayer={kickPlayer}
       />
     );
   }

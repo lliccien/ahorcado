@@ -107,6 +107,20 @@ export interface HostChangedPayload {
   players: Player[];
 }
 
+export interface SessionClosedPayload {
+  sessionCode: string;
+  /** Razón opcional para mostrar al usuario (ej. "El host cerró la sala"). */
+  reason?: string;
+}
+
+export interface PlayerKickedPayload {
+  /** Id del jugador expulsado. Si coincide con el `myPlayerId` del cliente,
+   * éste debe redirigir a la página de inicio. */
+  playerId: string;
+  /** Lista actualizada de jugadores tras la expulsión. */
+  players: Player[];
+}
+
 export interface WordSummary {
   difficulty: WordDifficulty;
   length: number;

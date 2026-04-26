@@ -5,16 +5,22 @@ import {
   CODE_ALPHABET,
   CODE_LENGTH,
   DEFAULT_LOCALE,
-  Player,
-  SessionState,
+  type Player,
+  type SessionState,
   SessionStatus,
 } from '@ahorcado/shared';
 
 import { CreateSessionDto } from './dto/create-session.dto';
 import { JoinSessionDto } from './dto/join-session.dto';
 import {
+  errCannotCloseWithPlayers,
+  errCannotKickHost,
+  errCloseInProgress,
   errInternal,
+  errKickInProgress,
   errNameTaken,
+  errNotHost,
+  errPlayerNotFound,
   errSessionAlreadyStarted,
   errSessionFinished,
   errSessionNotFound,
@@ -198,6 +204,65 @@ export class SessionsService {
 
   async getState(code: string): Promise<SessionState | null> {
     return this.repo.getSessionState(code);
+  }
+
+  /**
+   * El host cierra la sala. Solo permitido si:
+   * - él es el host actual,
+   * - la sesión está en LOBBY (no iniciada),
+   * - no hay otros jugadores conectados además del host.
+   * Borra el estado vivo en Redis.
+   */
+  async closeSession(
+    code: string,
+    requesterId: string,
+  ): Promise<{ state: SessionState }> {
+    const state = await this.repo.getSessionState(code);
+    if (!state) throw errSessionNotFound(code);
+    if (state.hostId !== requesterId) throw errNotHost();
+    if (
+      state.status === SessionStatus.IN_PROGRESS ||
+      state.status === SessionStatus.ROUND_ENDED
+    ) {
+      throw errCloseInProgress();
+    }
+
+    const players = await this.repo.listPlayers(code);
+    const otherConnected = players.filter(
+      (p) => p.id !== requesterId && p.connected,
+    );
+    if (otherConnected.length > 0) {
+      throw errCannotCloseWithPlayers();
+    }
+
+    await this.repo.deleteSession(code);
+    this.logger.log(`Sesión ${code} cerrada por host=${requesterId}`);
+    return { state };
+  }
+
+  /**
+   * El host expulsa a un jugador. Solo permitido en LOBBY y nunca al host.
+   */
+  async kickPlayer(
+    code: string,
+    requesterId: string,
+    targetPlayerId: string,
+  ): Promise<{ state: SessionState; players: Player[]; targetId: string }> {
+    const state = await this.repo.getSessionState(code);
+    if (!state) throw errSessionNotFound(code);
+    if (state.hostId !== requesterId) throw errNotHost();
+    if (state.status !== SessionStatus.LOBBY) throw errKickInProgress();
+    if (targetPlayerId === state.hostId) throw errCannotKickHost();
+
+    const target = await this.repo.getPlayer(code, targetPlayerId);
+    if (!target) throw errPlayerNotFound();
+
+    await this.repo.removePlayer(code, targetPlayerId);
+    const players = await this.repo.listPlayers(code);
+    this.logger.log(
+      `Jugador expulsado code=${code} target=${targetPlayerId} por host=${requesterId}`,
+    );
+    return { state, players, targetId: targetPlayerId };
   }
 
   private async generateUniqueCode(): Promise<string> {

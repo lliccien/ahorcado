@@ -60,3 +60,31 @@ export const errInternal = (msg: string) =>
     msg,
     HttpStatus.INTERNAL_SERVER_ERROR,
   );
+
+export const errCannotCloseWithPlayers = () =>
+  new DomainError(
+    ErrorCode.CANNOT_CLOSE_WITH_PLAYERS,
+    'Solo puedes cerrar la sala cuando seas el único conectado',
+    HttpStatus.CONFLICT,
+  );
+
+export const errCannotKickHost = () =>
+  new DomainError(
+    ErrorCode.CANNOT_KICK_HOST,
+    'No puedes expulsarte a ti mismo (eres el host)',
+    HttpStatus.BAD_REQUEST,
+  );
+
+export const errKickInProgress = () =>
+  new DomainError(
+    ErrorCode.KICK_IN_PROGRESS,
+    'Solo puedes expulsar jugadores antes de iniciar la partida',
+    HttpStatus.CONFLICT,
+  );
+
+export const errCloseInProgress = () =>
+  new DomainError(
+    ErrorCode.CLOSE_IN_PROGRESS,
+    'No se puede cerrar una sala con la partida en curso',
+    HttpStatus.CONFLICT,
+  );

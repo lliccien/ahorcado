@@ -15,6 +15,8 @@ interface Props {
   myPlayerId: string | null;
   isHost: boolean;
   onStart: () => Promise<{ ok: true } | ErrorPayload>;
+  onCloseSession: () => Promise<{ ok: true } | ErrorPayload>;
+  onKickPlayer: (playerId: string) => Promise<{ ok: true } | ErrorPayload>;
 }
 
 export default function LobbyView({
@@ -23,10 +25,14 @@ export default function LobbyView({
   myPlayerId,
   isHost,
   onStart,
+  onCloseSession,
+  onKickPlayer,
 }: Props) {
   const [copied, setCopied] = useState(false);
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
+  const [closing, setClosing] = useState(false);
+  const [kickingId, setKickingId] = useState<string | null>(null);
 
   async function copyCode() {
     try {
@@ -72,6 +78,32 @@ export default function LobbyView({
 
   const connectedCount = players.filter((p) => p.connected).length;
   const canStart = connectedCount >= MIN_PLAYERS_TO_START;
+  const otherConnectedCount = players.filter(
+    (p) => p.connected && p.id !== myPlayerId,
+  ).length;
+  const canCloseSession = isHost && otherConnectedCount === 0;
+
+  async function handleCloseSession() {
+    if (closing) return;
+    if (!confirm('¿Cerrar esta sala? La partida no podrá reanudarse.')) return;
+    setClosing(true);
+    try {
+      await onCloseSession();
+    } finally {
+      setClosing(false);
+    }
+  }
+
+  async function handleKick(playerId: string, name: string) {
+    if (kickingId) return;
+    if (!confirm(`¿Expulsar a ${name} de la sala?`)) return;
+    setKickingId(playerId);
+    try {
+      await onKickPlayer(playerId);
+    } finally {
+      setKickingId(null);
+    }
+  }
 
   return (
     <section className="mx-auto grid w-full max-w-md grid-cols-1 gap-6 px-4 pb-8 pt-6 text-slate-100 md:max-w-xl lg:max-w-2xl lg:grid-cols-2 lg:gap-8">
@@ -161,6 +193,19 @@ export default function LobbyView({
                     p.connected ? 'bg-emerald-400' : 'bg-slate-500'
                   }`}
                 />
+                {isHost && !p.isHost && !isMe && (
+                  <button
+                    type="button"
+                    onClick={() => handleKick(p.id, p.name)}
+                    disabled={kickingId === p.id}
+                    aria-label={`Expulsar a ${p.name}`}
+                    title={`Expulsar a ${p.name}`}
+                    data-testid={`lobby-kick-${p.id}`}
+                    className="ml-1 flex h-7 w-7 items-center justify-center rounded-full bg-red-500/15 text-red-200 ring-1 ring-red-400/30 transition hover:bg-red-500/25 disabled:opacity-40"
+                  >
+                    {kickingId === p.id ? '…' : '✕'}
+                  </button>
+                )}
               </li>
             );
           })}
@@ -182,6 +227,17 @@ export default function LobbyView({
                 ? 'Iniciar partida'
                 : `Necesitas ${MIN_PLAYERS_TO_START} jugadores conectados`}
           </button>
+          {canCloseSession && (
+            <button
+              type="button"
+              onClick={handleCloseSession}
+              disabled={closing}
+              className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-2.5 text-sm font-semibold text-red-200 transition hover:bg-red-500/20 disabled:opacity-50"
+              data-testid="lobby-close-btn"
+            >
+              {closing ? 'Cerrando…' : 'Cerrar sala'}
+            </button>
+          )}
           {startError && (
             <p role="alert" className="text-sm text-red-300">
               {startError}

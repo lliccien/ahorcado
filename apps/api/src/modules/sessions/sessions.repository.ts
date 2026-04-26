@@ -159,4 +159,33 @@ export class SessionsRepository {
     const state = await this.getSessionState(code);
     return state !== null;
   }
+
+  /**
+   * Elimina un jugador de la sala (lista, hash y orden). NO toca Postgres
+   * porque el historial debe preservarse.
+   */
+  async removePlayer(code: string, playerId: string): Promise<void> {
+    const client = this.redis.getClient();
+    await client.hdel(playersKey(code), playerId);
+    await client.lrem(playersOrderKey(code), 0, playerId);
+  }
+
+  /**
+   * Borra todo el estado vivo de la sesión en Redis. Útil cuando el host
+   * cierra la sala sin haber iniciado la partida. Postgres conserva el
+   * registro inicial de la sesión y los jugadores que se hayan unido.
+   */
+  async deleteSession(code: string): Promise<void> {
+    const client = this.redis.getClient();
+    const keys = [
+      sessionKey(code),
+      playersKey(code),
+      playersOrderKey(code),
+      `session:${code}:scoreboard`,
+      `session:${code}:lastRoundEnded`,
+      `session:${code}:usedWords`,
+    ];
+    await client.del(...keys);
+    await this.releaseCode(code);
+  }
 }
