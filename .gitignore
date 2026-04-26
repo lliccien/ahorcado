@@ -4,13 +4,18 @@
 node_modules/
 .pnp
 .pnp.js
+.pnpm-store/
+.npm/
 
 # Environment files
 .env
 .env.local
-.env*.local
+.env.*.local
+.env.development
 .env.development.local
+.env.test
 .env.test.local
+.env.production
 .env.production.local
 
 # Build outputs
@@ -18,14 +23,14 @@ build/
 dist/
 out/
 .next/
-.astro/
+**/.astro/
 *.tsbuildinfo
 
-# Astro / Vite-PWA
-apps/web/dev-dist/
+# Astro / Vite-PWA — artefactos de dev
+**/dev-dist/
 
 # Turbo
-.turbo
+**/.turbo/
 
 # Testing — Jest
 coverage/
@@ -53,13 +58,18 @@ lerna-debug.log*
 # Vercel
 .vercel
 
-# Database
+# Database / dumps locales
 data/
 *.sqlite
 *.sqlite3
+*.dump
 
-# Temporary files
+# Temporary files / backups
 *.tmp
+*.bak
+*.orig
+*.rej
+*~
 temp/
 tmp/
 
@@ -82,7 +92,6 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
-*~
 .project
 .classpath
 .c9/
@@ -90,5 +99,5 @@ Thumbs.db
 .settings/
 *.sublime-workspace
 
-# Claude Code — local-only
+# Claude Code — settings locales por máquina
 .claude/settings.local.json

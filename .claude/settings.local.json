@@ -88,7 +88,9 @@
       "Bash(docker network *)",
       "WebFetch(domain:docs.dokploy.com)",
       "WebSearch",
-      "WebFetch(domain:dokploy.com)"
+      "WebFetch(domain:dokploy.com)",
+      "Bash(grep -iE \"\\(dist|build|generated|\\\\.lock|\\\\.cache|cache/|coverage|tsbuildinfo|\\\\.astro/|dev-dist|test-results|playwright-report|\\\\.DS_Store|Thumbs\\\\.db|\\\\.swp|\\\\.tmp|node_modules|\\\\.log$|\\\\.env$|settings\\\\.local|\\\\.bak|\\\\.orig|~$\\)\")",
+      "Bash(grep -iE \"\\(dev-dist|\\\\.astro/|\\\\.turbo/|node_modules|coverage|\\\\.tsbuildinfo|test-results|playwright-report|settings\\\\.local|\\\\.bak$|\\\\.orig$\\)\")"
     ]
   }
 }
