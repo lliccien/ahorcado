@@ -1,16 +1,25 @@
 import { useGameStore } from '../../stores/gameStore';
+import { useOnlineStatus } from '../../hooks/useOnlineStatus';
 
 const MESSAGES: Record<string, { text: string; tone: 'warn' | 'error' }> = {
   connecting: { text: 'Conectando…', tone: 'warn' },
   reconnecting: { text: 'Reconectando…', tone: 'warn' },
-  disconnected: { text: 'Desconectado. Intentando reconectar…', tone: 'error' },
+  disconnected: { text: 'Sin servidor. Reintentando…', tone: 'error' },
   error: { text: 'No pudimos conectar al servidor', tone: 'error' },
 };
 
 export default function ConnectionBanner() {
   const status = useGameStore((s) => s.connectionStatus);
-  const cfg = MESSAGES[status];
+  const online = useOnlineStatus();
+
+  const cfg = !online
+    ? { text: 'Sin internet', tone: 'error' as const, pulse: false }
+    : MESSAGES[status]
+      ? { ...MESSAGES[status], pulse: true }
+      : null;
+
   if (!cfg) return null;
+
   return (
     <div
       role="status"
@@ -22,7 +31,7 @@ export default function ConnectionBanner() {
       }`}
     >
       <span
-        className={`h-2 w-2 animate-pulse rounded-full ${
+        className={`h-2 w-2 rounded-full ${cfg.pulse ? 'animate-pulse' : ''} ${
           cfg.tone === 'warn' ? 'bg-amber-300' : 'bg-red-300'
         }`}
         aria-hidden

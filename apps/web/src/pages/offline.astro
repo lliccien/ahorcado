@@ -1,0 +1,30 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+export const prerender = true;
+---
+
+<Layout title="Sin conexión — Ahorcado" description="Sin conexión a internet">
+  <main class="flex min-h-dvh flex-col items-center justify-center px-6 py-10">
+    <section class="flex w-full max-w-md flex-col items-center gap-6 text-center">
+      <span class="text-6xl" aria-hidden>📡</span>
+      <h1 class="text-3xl font-extrabold tracking-tight text-white md:text-4xl">
+        Sin conexión
+      </h1>
+      <p class="text-base text-slate-300">
+        No pudimos conectarte. Necesitas internet para crear o unirte a una
+        partida en tiempo real.
+      </p>
+      <p class="text-sm text-slate-400">
+        Cuando vuelva la red, toca <span class="font-semibold text-amber-300">Reintentar</span>
+        para volver al inicio.
+      </p>
+      <a
+        href="/"
+        class="rounded-2xl bg-amber-400 px-5 py-4 text-lg font-semibold text-slate-950 shadow-md transition hover:bg-amber-300"
+      >
+        Reintentar
+      </a>
+    </section>
+  </main>
+</Layout>

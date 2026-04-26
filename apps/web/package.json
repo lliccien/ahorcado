@@ -6,7 +6,8 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "icons:generate": "node scripts/generate-pwa-icons.mjs"
   },
   "dependencies": {
     "@ahorcado/shared": "workspace:*",
@@ -21,5 +22,10 @@
     "socket.io-client": "^4.8.1",
     "tailwindcss": "^4.1.17",
     "zustand": "^5.0.2"
+  },
+  "devDependencies": {
+    "@vite-pwa/astro": "^1.2.0",
+    "sharp": "^0.34.5",
+    "workbox-window": "^7.4.0"
   }
 }

@@ -42,7 +42,24 @@
       "Bash(curl -s -i -H \"Origin: http://192.168.59.108:4321\" -H \"Content-Type: application/json\" -X POST http://192.168.59.108:3000/sessions -d '{\"totalRounds\":2,\"category\":\"animales\",\"hostName\":\"Lan\"}')",
       "Bash(curl -s -o /dev/null -w \"Web LAN / → %{http_code}\\\\n\" http://192.168.59.108:4321/)",
       "Bash(curl -s -o /dev/null -w \"Web LAN /host → %{http_code}\\\\n\" http://192.168.59.108:4321/host)",
-      "Bash(curl -s -o /dev/null -w \"Web LAN /play/KQRMK3 → %{http_code}\\\\n\" http://192.168.59.108:4321/play/KQRMK3)"
+      "Bash(curl -s -o /dev/null -w \"Web LAN /play/KQRMK3 → %{http_code}\\\\n\" http://192.168.59.108:4321/play/KQRMK3)",
+      "Bash(make dev-up *)",
+      "Bash(curl -sf http://localhost:3000/health -o /dev/null)",
+      "Bash(curl -sf http://localhost:3000/health)",
+      "Bash(curl -sf http://localhost:4321/ -o /dev/null -w \"web HTTP %{http_code}\\\\n\")",
+      "Bash(awk '{print $9, $5}')",
+      "Bash(pnpm --filter web add -D @vite-pwa/astro workbox-window sharp)",
+      "Bash(node scripts/generate-pwa-icons.mjs)",
+      "Bash(touch apps/web/src/env.d.ts)",
+      "Read(//c/c/Users/ludwr/www/ahorcado/apps/web/src/**)",
+      "Bash(pnpm --filter web build)",
+      "Bash(curl -sf http://localhost:4321/manifest.webmanifest -o /dev/null -w \"manifest HTTP %{http_code}\\\\n\")",
+      "Bash(curl -sf http://localhost:4321/sw.js -o /dev/null -w \"sw HTTP %{http_code}\\\\n\")",
+      "Bash(curl -sf http://localhost:4321/offline -o /dev/null -w \"offline HTTP %{http_code}\\\\n\")",
+      "Bash(curl -sf http://localhost:4321/icons/icon-192.png -o /dev/null -w \"icon-192 HTTP %{http_code}\\\\n\")",
+      "Bash(curl -sf http://localhost:4321/)",
+      "Bash(curl -sf http://localhost:4321/dev-sw.js?dev-sw -o /dev/null -w \"dev-sw HTTP %{http_code}\\\\n\")",
+      "Bash(curl -sf http://localhost:4321/registerSW.js -o /dev/null -w \"registerSW HTTP %{http_code}\\\\n\")"
     ]
   }
 }

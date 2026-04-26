@@ -1,5 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import InstallAppButton from '../components/InstallAppButton.tsx';
 ---
 
 <Layout title="Ahorcado en familia">
@@ -29,6 +30,7 @@ import Layout from '../layouts/Layout.astro';
         >
           Unirme con un código
         </a>
+        <InstallAppButton client:idle />
       </div>
 
       <p class="text-xs text-slate-500">
