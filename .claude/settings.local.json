@@ -28,7 +28,13 @@
       "Bash(curl -s -o /dev/null -w \"/categories → %{http_code}\\\\n\" http://localhost:3000/categories)",
       "Bash(curl -s 'http://localhost:3000/categories?locale=es-419')",
       "PowerShell($conn = Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue; if \\($conn\\) { $conn | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue } } ; $conn2 = Get-NetTCPConnection -LocalPort 4321 -State Listen -ErrorAction SilentlyContinue; if \\($conn2\\) { $conn2 | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue } } ; Write-Output \"ok\")",
-      "Bash(curl -s 'http://localhost:4321/play/ABCDEF')"
+      "Bash(curl -s 'http://localhost:4321/play/ABCDEF')",
+      "Bash(curl -s -o /dev/null -w \"API /health → %{http_code}\\\\n\" http://localhost:3000/health)",
+      "Bash(curl -s -o /dev/null -w \"Web / → %{http_code}\\\\n\" http://localhost:4321/)",
+      "Bash(curl -s -o /dev/null -w \"Web /host → %{http_code}\\\\n\" http://localhost:4321/host)",
+      "Bash(curl -s -o /dev/null -w \"categorías → %{http_code}\\\\n\" http://localhost:3000/categories)",
+      "Bash(curl -s -o /dev/null -w \"Web /join → %{http_code}\\\\n\" http://localhost:4321/join)",
+      "Bash(curl -s -o /dev/null -w \"Web /play/AAAAAA → %{http_code}\\\\n\" http://localhost:4321/play/AAAAAA)"
     ]
   }
 }
