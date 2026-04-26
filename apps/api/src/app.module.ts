@@ -1,10 +1,13 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
 import { ConfigModule } from '@nestjs/config';
-import path from 'path';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { TerminusModule } from '@nestjs/terminus';
 import { HttpModule } from '@nestjs/axios';
+import path from 'path';
+
+import { AppController } from './app.controller';
+import { RedisModule } from './modules/redis/redis.module';
+import { RealtimeModule } from './modules/realtime/realtime.module';
 
 @Module({
   imports: [
@@ -14,7 +17,7 @@ import { HttpModule } from '@nestjs/axios';
     }),
 
     TypeOrmModule.forRoot({
-      type: process.env.DB_TYPE as any || 'postgres',
+      type: (process.env.DB_TYPE as 'postgres') || 'postgres',
       host: process.env.DB_HOST,
       port: parseInt(process.env.DB_PORT || '5432', 10),
       username: process.env.DB_USERNAME,
@@ -26,6 +29,8 @@ import { HttpModule } from '@nestjs/axios';
 
     TerminusModule,
     HttpModule,
+    RedisModule,
+    RealtimeModule,
   ],
   controllers: [AppController],
   providers: [],

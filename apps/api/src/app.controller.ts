@@ -2,11 +2,14 @@ import { Controller, Get } from '@nestjs/common';
 import {
   HealthCheck,
   HealthCheckService,
+  HealthIndicatorResult,
   TypeOrmHealthIndicator,
   MemoryHealthIndicator,
   DiskHealthIndicator,
 } from '@nestjs/terminus';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+
+import { RedisService } from './modules/redis/redis.service';
 
 @ApiTags('App')
 @Controller()
@@ -16,13 +19,28 @@ export class AppController {
     private db: TypeOrmHealthIndicator,
     private memory: MemoryHealthIndicator,
     private disk: DiskHealthIndicator,
+    private redis: RedisService,
   ) {}
+
+  private async checkRedis(): Promise<HealthIndicatorResult> {
+    try {
+      const pong = await this.redis.ping();
+      return { redis: { status: pong === 'PONG' ? 'up' : 'down' } };
+    } catch (err) {
+      return {
+        redis: {
+          status: 'down',
+          message: err instanceof Error ? err.message : String(err),
+        },
+      };
+    }
+  }
 
   @Get()
   @ApiOperation({ summary: 'Get welcome message' })
   @ApiResponse({ status: 200, description: 'Returns welcome message' })
   getHello(): string {
-    return 'NestJS API is running! 🚀';
+    return 'Ahorcado API en línea 🎮';
   }
 
   @Get('health')
@@ -78,19 +96,13 @@ export class AppController {
   })
   check() {
     return this.health.check([
-      // Check database connection
       () => this.db.pingCheck('database'),
-      
-      // Check heap memory doesn't exceed 150MB
+      () => this.checkRedis(),
       () => this.memory.checkHeap('memory_heap', 150 * 1024 * 1024),
-      
-      // Check RSS memory doesn't exceed 300MB
       () => this.memory.checkRSS('memory_rss', 300 * 1024 * 1024),
-      
-      // Check disk storage (50% available)
-      () => this.disk.checkStorage('disk', { 
-        path: '/', 
-        thresholdPercent: 0.5 
+      () => this.disk.checkStorage('disk', {
+        path: process.platform === 'win32' ? 'C:\\' : '/',
+        thresholdPercent: 0.5,
       }),
     ]);
   }
@@ -157,9 +169,9 @@ export class AppController {
     }
   })
   readiness() {
-    // For Kubernetes readiness probe - checks critical dependencies
     return this.health.check([
       () => this.db.pingCheck('database'),
+      () => this.checkRedis(),
     ]);
   }
 }

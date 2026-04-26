@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm install *)",
+      "Bash(pnpm exec *)",
+      "Bash(docker --version)",
+      "Bash(docker info *)",
+      "Bash(docker compose *)",
+      "Bash(docker exec *)",
+      "Bash(pnpm dev *)",
+      "Bash(grep -qE \"API escuchando|Bootstrap.*listening|Error|UnhandledPromiseRejection|Cannot find|EADDRINUSE\" \"C:\\\\\\\\Users\\\\\\\\ludwr\\\\\\\\AppData\\\\\\\\Local\\\\\\\\Temp\\\\\\\\claude\\\\\\\\c--Users-ludwr-www-ahorcado\\\\\\\\cfbbb893-087b-48a1-bb4e-51b9b5e8abcf\\\\\\\\tasks\\\\\\\\bmfcqugmk.output\")",
+      "Bash(pnpm --filter @ahorcado/shared build)",
+      "Bash(curl -s http://localhost:3000/health)",
+      "Bash(node -e ' *)"
+    ]
+  }
+}
