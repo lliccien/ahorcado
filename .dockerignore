@@ -1,0 +1,51 @@
+# Dependencias y artefactos de build
+**/node_modules
+**/dist
+**/build
+**/.next
+**/.astro
+**/.turbo
+**/dev-dist
+**/coverage
+**/*.tsbuildinfo
+
+# Tests output
+**/playwright-report
+**/test-results
+**/.playwright-cache
+
+# Logs
+**/*.log
+**/npm-debug.log*
+**/pnpm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+
+# Entornos / secretos — los pasa Dokploy/compose por env
+.env
+.env.*
+!.env.example
+
+# Git / VCS
+.git
+.gitignore
+.gitattributes
+
+# Editor / IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# CI / Docs / Config local
+.claude
+.github
+README.md
+docs
+
+# Imágenes Docker para no copiarse a sí mismas
+docker/docker-compose*.yml

@@ -41,6 +41,6 @@ const {
   </head>
   <body class="bg-notebook min-h-dvh text-slate-100 antialiased">
     <slot />
-    <PwaUpdatePrompt client:idle />
+    <PwaUpdatePrompt client:only="react" />
   </body>
 </html>

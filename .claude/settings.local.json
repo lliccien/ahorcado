@@ -75,7 +75,14 @@
       "Bash(git remote *)",
       "Bash(git push *)",
       "Bash(git rm *)",
-      "Bash(git check-ignore *)"
+      "Bash(git check-ignore *)",
+      "Bash(docker build *)",
+      "Bash(docker run *)",
+      "Bash(curl -sf http://localhost:3099/ -o /dev/null -w \"web HTTP %{http_code}\\\\n\")",
+      "Bash(curl -sf http://localhost:3099/manifest.webmanifest -o /dev/null -w \"manifest HTTP %{http_code}\\\\n\")",
+      "Bash(curl -sf http://localhost:3099/sw.js -o /dev/null -w \"sw HTTP %{http_code}\\\\n\")",
+      "Bash(docker rm *)",
+      "Bash(docker rmi *)"
     ]
   }
 }

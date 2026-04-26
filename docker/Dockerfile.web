@@ -1,44 +1,54 @@
-# Dockerfile multi-stage para Web (AstroJS)
+# Dockerfile multi-stage para Web (AstroJS SSR)
 FROM node:20-alpine AS base
 RUN corepack enable && corepack prepare pnpm@latest --activate
 WORKDIR /app
 
-# Etapa de dependencias
+# ── Etapa de dependencias ────────────────────────────────────────────
+# Copiamos los package.json de TODOS los workspaces para que
+# `pnpm install --frozen-lockfile` valide contra el lockfile.
 FROM base AS deps
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 COPY apps/api/package.json ./apps/api/
 COPY apps/web/package.json ./apps/web/
-COPY turbo.json ./
+COPY packages/shared/package.json ./packages/shared/
+COPY tests/e2e/package.json ./tests/e2e/
 RUN pnpm install --frozen-lockfile
 
-# Etapa de construcción
-FROM base AS builder
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps ./apps
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json tsconfig.json ./
+# ── Etapa de construcción ────────────────────────────────────────────
+# turbo `build:web` ejecuta primero `^build` que compila
+# `@ahorcado/shared`, así que tiene que existir su código fuente.
+FROM deps AS builder
+COPY tsconfig.json ./
 COPY apps/web ./apps/web
+COPY packages/shared ./packages/shared
+
+ARG PUBLIC_API_URL
+ENV PUBLIC_API_URL=${PUBLIC_API_URL}
 
 RUN pnpm run build:web
 
-# Etapa de producción
-FROM node:20-alpine AS runner
-RUN corepack enable && corepack prepare pnpm@latest --activate
-WORKDIR /app
-
+# ── Etapa de producción ──────────────────────────────────────────────
+FROM base AS runner
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
 ENV PORT=3000
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 astro
+RUN addgroup --system --gid 1001 nodejs \
+  && adduser --system --uid 1001 astro
 
-# Copiar archivos de build
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/api/package.json ./apps/api/
+COPY apps/web/package.json ./apps/web/
+COPY packages/shared/package.json ./packages/shared/
+COPY tests/e2e/package.json ./tests/e2e/
+
+RUN pnpm install --prod --frozen-lockfile \
+  && pnpm store prune
+
+COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
 COPY --from=builder /app/apps/web/dist ./apps/web/dist
-COPY --from=builder /app/apps/web/package.json ./apps/web/
-COPY --from=deps /app/node_modules ./node_modules
 
 USER astro
-
 WORKDIR /app/apps/web
 
 EXPOSE 3000
