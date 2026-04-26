@@ -36,7 +36,13 @@
       "Bash(curl -s -o /dev/null -w \"Web /join → %{http_code}\\\\n\" http://localhost:4321/join)",
       "Bash(curl -s -o /dev/null -w \"Web /play/AAAAAA → %{http_code}\\\\n\" http://localhost:4321/play/AAAAAA)",
       "Bash(pnpm --filter @ahorcado/e2e exec playwright install chromium)",
-      "Bash(pnpm test:e2e)"
+      "Bash(pnpm test:e2e)",
+      "PowerShell(Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.PrefixOrigin -eq 'Dhcp' -or \\($_.IPAddress -match '^192\\\\.168\\\\.|^10\\\\.|^172\\\\.\\(1[6-9]|2[0-9]|3[0-1]\\)\\\\.'\\) } | Where-Object { $_.IPAddress -ne '127.0.0.1' } | Select-Object -ExpandProperty IPAddress -First 5)",
+      "Bash(curl -s -i -H \"Origin: http://192.168.59.108:4321\" -H \"Access-Control-Request-Method: POST\" -X OPTIONS http://192.168.59.108:3000/sessions)",
+      "Bash(curl -s -i -H \"Origin: http://192.168.59.108:4321\" -H \"Content-Type: application/json\" -X POST http://192.168.59.108:3000/sessions -d '{\"totalRounds\":2,\"category\":\"animales\",\"hostName\":\"Lan\"}')",
+      "Bash(curl -s -o /dev/null -w \"Web LAN / → %{http_code}\\\\n\" http://192.168.59.108:4321/)",
+      "Bash(curl -s -o /dev/null -w \"Web LAN /host → %{http_code}\\\\n\" http://192.168.59.108:4321/host)",
+      "Bash(curl -s -o /dev/null -w \"Web LAN /play/KQRMK3 → %{http_code}\\\\n\" http://192.168.59.108:4321/play/KQRMK3)"
     ]
   }
 }
