@@ -59,7 +59,17 @@
       "Bash(curl -sf http://localhost:4321/icons/icon-192.png -o /dev/null -w \"icon-192 HTTP %{http_code}\\\\n\")",
       "Bash(curl -sf http://localhost:4321/)",
       "Bash(curl -sf http://localhost:4321/dev-sw.js?dev-sw -o /dev/null -w \"dev-sw HTTP %{http_code}\\\\n\")",
-      "Bash(curl -sf http://localhost:4321/registerSW.js -o /dev/null -w \"registerSW HTTP %{http_code}\\\\n\")"
+      "Bash(curl -sf http://localhost:4321/registerSW.js -o /dev/null -w \"registerSW HTTP %{http_code}\\\\n\")",
+      "Bash(curl -sf http://localhost:3000/health/liveness -o /dev/null)",
+      "Bash(curl -sf http://localhost:4321/ -o /dev/null)",
+      "PowerShell(Get-NetTCPConnection -LocalPort 4321 -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1 | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue; \"Killed PID $\\($_.OwningProcess\\)\" }; Get-NetTCPConnection -LocalPort 4322 -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1 | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue; \"Killed PID $\\($_.OwningProcess\\) on 4322\" }; \"done\")",
+      "Bash(curl -sf http://localhost:4321/ -o /dev/null -w \"4321: %{http_code}\\\\n\")",
+      "Bash(curl -sf http://localhost:4322/ -o /dev/null -w \"4322: %{http_code}\\\\n\")",
+      "Bash(curl -sf http://localhost:3000/health/liveness -o /dev/null -w \"3000: %{http_code}\\\\n\")",
+      "Bash(pnpm dev:web)",
+      "Bash(curl -sf http://localhost:3000/health/liveness -o /dev/null -w \"API: %{http_code}\\\\n\")",
+      "Bash(curl -sf -X POST http://localhost:3000/sessions -H \"Content-Type: application/json\" -d '{\"hostName\":\"test\",\"categoryId\":\"animales\",\"totalRounds\":3}' -w \"\\\\nPOST: %{http_code}\\\\n\")",
+      "PowerShell(Get-NetTCPConnection -LocalPort 4321 -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }; \"ports cleared\")"
     ]
   }
 }
