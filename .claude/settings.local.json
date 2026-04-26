@@ -85,7 +85,10 @@
       "Bash(docker rmi *)",
       "Bash(pwd -W)",
       "Bash(MSYS_NO_PATHCONV=1 docker run --rm -v \"$\\(pwd -W\\)/docker/Caddyfile:/etc/caddy/Caddyfile:ro\" caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile)",
-      "Bash(docker network *)"
+      "Bash(docker network *)",
+      "WebFetch(domain:docs.dokploy.com)",
+      "WebSearch",
+      "WebFetch(domain:dokploy.com)"
     ]
   }
 }
