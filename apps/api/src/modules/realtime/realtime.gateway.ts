@@ -22,6 +22,8 @@ import {
   type SocketData,
 } from '@ahorcado/shared';
 
+import { GameService } from '../game/game.service';
+import { GuessLetterDto } from '../game/dto/guess-letter.dto';
 import { CreateSessionDto } from '../sessions/dto/create-session.dto';
 import { JoinSessionDto } from '../sessions/dto/join-session.dto';
 import { SessionsService } from '../sessions/sessions.service';
@@ -47,14 +49,14 @@ export class RealtimeGateway
   private readonly logger = new Logger(RealtimeGateway.name);
   private readonly filter = new WsExceptionFilter();
 
-  /**
-   * Cuando el gateway declara `namespace`, `server` ya es el Namespace, no el
-   * Socket.io Server raíz. Por eso emitimos directo con `this.server.to(...)`.
-   */
+  /** Cuando se declara `namespace`, server ya es Namespace, no Server raíz. */
   @WebSocketServer()
   server!: Namespace;
 
-  constructor(private readonly sessions: SessionsService) {}
+  constructor(
+    private readonly sessions: SessionsService,
+    private readonly game: GameService,
+  ) {}
 
   afterInit(): void {
     this.logger.log(`Gateway listo en namespace ${WS_NAMESPACE}`);
@@ -82,6 +84,9 @@ export class RealtimeGateway
     this.logger.debug(`Cliente desconectado: ${client.id}`);
   }
 
+  // ---------------------------------------------------------------------
+  // Lobby
+  // ---------------------------------------------------------------------
   @SubscribeMessage('session:create')
   async handleCreateSession(
     @ConnectedSocket() client: Socket,
@@ -190,6 +195,125 @@ export class RealtimeGateway
       const session = await this.sessions.getState(data.sessionCode);
       const players = await this.sessions.listPlayers(data.sessionCode);
       return { session, players };
+    } catch (err) {
+      return this.filter.toErrorPayload(err);
+    }
+  }
+
+  // ---------------------------------------------------------------------
+  // Gameplay
+  // ---------------------------------------------------------------------
+  @SubscribeMessage('session:start')
+  async handleStart(
+    @ConnectedSocket() client: Socket,
+  ): Promise<{ ok: true } | ErrorPayload> {
+    try {
+      const data = client.data as Partial<SocketData>;
+      if (!data?.sessionCode || !data.playerId) {
+        return {
+          code: ErrorCode.SESSION_NOT_FOUND,
+          message: 'Socket sin sesión asociada',
+        };
+      }
+      const start = await this.game.startSession(
+        data.sessionCode,
+        data.playerId,
+      );
+      this.server
+        .to(roomName(data.sessionCode))
+        .emit('session:started', { session: start.state });
+      // Cada jugador recibe round:started con SU estado individual
+      for (const [pid, myState] of start.perPlayer.entries()) {
+        const sockets = await this.server
+          .in(roomName(data.sessionCode))
+          .fetchSockets();
+        for (const s of sockets) {
+          const sd = s.data as Partial<SocketData> | undefined;
+          if (sd?.playerId === pid) {
+            s.emit('round:started', { round: start.roundPublic, myState });
+          }
+        }
+      }
+      return { ok: true };
+    } catch (err) {
+      return this.filter.toErrorPayload(err);
+    }
+  }
+
+  @SubscribeMessage('host:nextRound')
+  async handleNextRound(
+    @ConnectedSocket() client: Socket,
+  ): Promise<{ ok: true } | ErrorPayload> {
+    try {
+      const data = client.data as Partial<SocketData>;
+      if (!data?.sessionCode || !data.playerId) {
+        return {
+          code: ErrorCode.SESSION_NOT_FOUND,
+          message: 'Socket sin sesión asociada',
+        };
+      }
+      const advance = await this.game.advanceRound(
+        data.sessionCode,
+        data.playerId,
+      );
+      if (advance.kind === 'finished') {
+        this.server
+          .to(roomName(data.sessionCode))
+          .emit('game:finished', advance.payload);
+      } else {
+        const start = advance.result;
+        this.server
+          .to(roomName(data.sessionCode))
+          .emit('session:started', { session: start.state });
+        const sockets = await this.server
+          .in(roomName(data.sessionCode))
+          .fetchSockets();
+        for (const s of sockets) {
+          const sd = s.data as Partial<SocketData> | undefined;
+          if (!sd?.playerId) continue;
+          const myState = start.perPlayer.get(sd.playerId);
+          if (myState) {
+            s.emit('round:started', { round: start.roundPublic, myState });
+          }
+        }
+      }
+      return { ok: true };
+    } catch (err) {
+      return this.filter.toErrorPayload(err);
+    }
+  }
+
+  @SubscribeMessage('round:guess')
+  async handleGuess(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() dto: GuessLetterDto,
+  ) {
+    try {
+      const data = client.data as Partial<SocketData>;
+      if (!data?.sessionCode || !data.playerId) {
+        return {
+          code: ErrorCode.SESSION_NOT_FOUND,
+          message: 'Socket sin sesión asociada',
+        };
+      }
+      const outcome = await this.game.applyGuess(
+        data.sessionCode,
+        data.playerId,
+        dto.letter,
+      );
+
+      // Difundir progreso opaco a la sala (sin letras concretas)
+      this.server
+        .to(roomName(data.sessionCode))
+        .emit('round:opponentProgress', outcome.opponentProgress);
+
+      if (outcome.roundEnded && outcome.endedPayload) {
+        this.server
+          .to(roomName(data.sessionCode))
+          .emit('round:ended', outcome.endedPayload);
+      }
+
+      return outcome.result;
     } catch (err) {
       return this.filter.toErrorPayload(err);
     }

@@ -8,7 +8,9 @@ import path from 'path';
 import { AppController } from './app.controller';
 import { RedisModule } from './modules/redis/redis.module';
 import { RealtimeModule } from './modules/realtime/realtime.module';
+import { GameModule } from './modules/game/game.module';
 import { SessionsModule } from './modules/sessions/sessions.module';
+import { WordsModule } from './modules/words/words.module';
 
 @Module({
   imports: [
@@ -31,7 +33,9 @@ import { SessionsModule } from './modules/sessions/sessions.module';
     TerminusModule,
     HttpModule,
     RedisModule,
+    WordsModule,
     SessionsModule,
+    GameModule,
     RealtimeModule,
   ],
   controllers: [AppController],

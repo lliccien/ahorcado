@@ -1,0 +1,22 @@
+[
+  "Médico","Médica","Doctor","Doctora","Enfermero","Enfermera","Dentista","Odontólogo","Cirujano","Pediatra",
+  "Cardiólogo","Oftalmólogo","Ginecólogo","Psiquiatra","Psicólogo","Veterinario","Farmacéutico","Nutricionista","Fisioterapeuta","Quiropráctico",
+  "Profesor","Profesora","Maestro","Maestra","Docente","Director","Rector","Catedrático","Investigador","Científico",
+  "Biólogo","Químico","Físico","Matemático","Astrónomo","Geólogo","Arqueólogo","Antropólogo","Historiador","Filósofo",
+  "Abogado","Abogada","Juez","Jueza","Fiscal","Notario","Procurador","Asesor legal","Mediador","Defensor",
+  "Ingeniero","Ingeniera","Ingeniero civil","Ingeniero mecánico","Ingeniero eléctrico","Ingeniero electrónico","Ingeniero de sistemas","Ingeniero industrial","Ingeniero químico","Ingeniero ambiental",
+  "Arquitecto","Diseñador","Diseñador gráfico","Diseñador industrial","Diseñador de modas","Decorador","Urbanista","Topógrafo","Constructor","Albañil",
+  "Carpintero","Plomero","Fontanero","Electricista","Soldador","Mecánico","Herrero","Pintor","Cerrajero","Vidriero",
+  "Programador","Desarrollador","Analista","Administrador de sistemas","Diseñador web","Tester","DevOps","Científico de datos","Ingeniero de software","Hacker ético",
+  "Periodista","Reportero","Redactor","Editor","Locutor","Presentador","Camarógrafo","Fotógrafo","Productor","Director de cine",
+  "Actor","Actriz","Cantante","Músico","Compositor","Bailarín","Bailarina","Coreógrafo","Director de orquesta","Pianista",
+  "Guitarrista","Baterista","Violinista","Saxofonista","Trompetista","Flautista","Escritor","Poeta","Novelista","Dramaturgo",
+  "Pintor artista","Escultor","Caricaturista","Ilustrador","Animador","Cocinero","Chef","Repostero","Pastelero","Panadero",
+  "Mesero","Mesera","Camarero","Bartender","Barista","Sommelier","Catador","Empresario","Emprendedor","Comerciante",
+  "Vendedor","Cajero","Cajera","Contador","Contadora","Auditor","Economista","Financiero","Banquero","Inversionista",
+  "Gerente","Administrador","Asistente","Secretaria","Recepcionista","Conserje","Portero","Vigilante","Guardia","Policía",
+  "Bombero","Militar","Soldado","Oficial","Capitán","Teniente","General","Almirante","Marinero","Piloto",
+  "Azafata","Sobrecargo","Capitán de barco","Pescador","Marino","Astronauta","Cosmonauta","Granjero","Agricultor","Ganadero",
+  "Pastor","Apicultor","Jardinero","Floricultor","Botánico","Zoólogo","Veterinario rural","Forestal","Minero","Petrolero",
+  "Conductor","Taxista","Camionero","Repartidor","Mensajero","Cartero","Operador","Recepcionista de hotel","Limpiador","Sastre"
+]

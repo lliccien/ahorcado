@@ -1,6 +1,11 @@
 import { useState } from 'react';
 
-import type { Player, SessionState } from '@ahorcado/shared';
+import {
+  MIN_PLAYERS_TO_START,
+  type ErrorPayload,
+  type Player,
+  type SessionState,
+} from '@ahorcado/shared';
 
 import { categoryLabel } from '../../lib/categories';
 
@@ -9,6 +14,7 @@ interface Props {
   players: Player[];
   myPlayerId: string | null;
   isHost: boolean;
+  onStart: () => Promise<{ ok: true } | ErrorPayload>;
 }
 
 export default function LobbyView({
@@ -16,8 +22,11 @@ export default function LobbyView({
   players,
   myPlayerId,
   isHost,
+  onStart,
 }: Props) {
   const [copied, setCopied] = useState(false);
+  const [starting, setStarting] = useState(false);
+  const [startError, setStartError] = useState<string | null>(null);
 
   async function copyCode() {
     try {
@@ -35,7 +44,9 @@ export default function LobbyView({
       return;
     }
     try {
-      await (navigator as Navigator & { share: (data: ShareData) => Promise<void> }).share({
+      await (
+        navigator as Navigator & { share: (data: ShareData) => Promise<void> }
+      ).share({
         title: 'Únete a mi partida del Ahorcado',
         text: `Código de sala: ${session.code}`,
         url: `${window.location.origin}/join?code=${session.code}`,
@@ -44,6 +55,23 @@ export default function LobbyView({
       // El usuario canceló o el navegador no soporta share
     }
   }
+
+  async function handleStart() {
+    if (starting) return;
+    setStartError(null);
+    setStarting(true);
+    try {
+      const result = await onStart();
+      if ('code' in result && 'message' in result) {
+        setStartError((result as ErrorPayload).message);
+      }
+    } finally {
+      setStarting(false);
+    }
+  }
+
+  const connectedCount = players.filter((p) => p.connected).length;
+  const canStart = connectedCount >= MIN_PLAYERS_TO_START;
 
   return (
     <section className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 pb-8 pt-6 text-slate-100">
@@ -138,14 +166,25 @@ export default function LobbyView({
       </div>
 
       {isHost ? (
-        <button
-          type="button"
-          disabled
-          className="rounded-xl bg-slate-700/60 px-4 py-3 text-base font-semibold text-slate-300"
-          title="Disponible cuando implementemos la Fase 2 (gameplay)"
-        >
-          Iniciar partida (próximamente)
-        </button>
+        <div className="flex flex-col gap-2">
+          <button
+            type="button"
+            onClick={handleStart}
+            disabled={!canStart || starting}
+            className="rounded-xl bg-amber-400 px-4 py-3 text-base font-semibold text-slate-950 shadow-md transition hover:bg-amber-300 disabled:bg-slate-700/60 disabled:text-slate-300"
+          >
+            {starting
+              ? 'Iniciando…'
+              : canStart
+                ? 'Iniciar partida'
+                : `Necesitas ${MIN_PLAYERS_TO_START} jugadores conectados`}
+          </button>
+          {startError && (
+            <p role="alert" className="text-sm text-red-300">
+              {startError}
+            </p>
+          )}
+        </div>
       ) : (
         <p className="text-center text-sm text-slate-400">
           Esperando que el host inicie la partida…

@@ -21,7 +21,12 @@
       "Bash(curl -s -o /dev/null -w \"/join → %{http_code}\\\\n\" http://localhost:4321/join)",
       "Bash(curl -s -o /dev/null -w \"/play/ABCDEF → %{http_code}\\\\n\" http://localhost:4321/play/ABCDEF)",
       "Bash(curl -s 'http://localhost:4321/')",
-      "Bash(curl -s 'http://localhost:4321/host')"
+      "Bash(curl -s 'http://localhost:4321/host')",
+      "Bash(node -e \"const { normalizeWord } = require\\('./apps/api/src/modules/words/word-normalize.ts'\\); console.log\\(normalizeWord\\('Canadá'\\)\\); console.log\\(normalizeWord\\('Niño'\\)\\);\")",
+      "Bash(pnpm seed *)",
+      "PowerShell($conn = Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue; if \\($conn\\) { $conn | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue } } ; Write-Output \"ok\")",
+      "Bash(curl -s -o /dev/null -w \"/categories → %{http_code}\\\\n\" http://localhost:3000/categories)",
+      "Bash(curl -s 'http://localhost:3000/categories?locale=es-419')"
     ]
   }
 }

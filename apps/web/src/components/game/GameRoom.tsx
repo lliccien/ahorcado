@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
   ErrorCode,
@@ -15,7 +15,10 @@ import {
   getPlayerId,
   setPlayerId,
 } from '../../lib/storage';
+import FinalLeaderboard from './FinalLeaderboard';
 import LobbyView from './LobbyView';
+import RoundResultModal from './RoundResultModal';
+import RoundView from './RoundView';
 
 interface Props {
   code: string;
@@ -29,7 +32,8 @@ type Stage = 'connecting' | 'needsName' | 'joining' | 'ready' | 'fatal';
 
 export default function GameRoom({ code, initialName = '', isHost = false }: Props) {
   const upperCode = code.toUpperCase();
-  const { joinSession } = useGameSocket();
+  const { joinSession, startSession, nextRound, guess } = useGameSocket();
+
   const session = useGameStore((s) => s.session);
   const players = useGameStore((s) => s.players);
   const myPlayerId = useGameStore((s) => s.myPlayerId);
@@ -40,14 +44,22 @@ export default function GameRoom({ code, initialName = '', isHost = false }: Pro
   const error = useGameStore((s) => s.error);
   const connectionStatus = useGameStore((s) => s.connectionStatus);
 
+  const currentRound = useGameStore((s) => s.currentRound);
+  const myRoundState = useGameStore((s) => s.myRoundState);
+  const opponents = useGameStore((s) => s.opponents);
+  const scoreboard = useGameStore((s) => s.scoreboard);
+  const lastRoundEnded = useGameStore((s) => s.lastRoundEnded);
+  const finalLeaderboard = useGameStore((s) => s.finalLeaderboard);
+  const setLastRoundEnded = useGameStore((s) => s.setLastRoundEnded);
+
   const joinedRef = useRef(false);
   const [stage, setStage] = useState<Stage>('connecting');
   const [pendingName, setPendingName] = useState<string>(
     () => initialName || getLastName(),
   );
+  const [guessing, setGuessing] = useState(false);
 
-  // Si ya nos creó la sesión el host (mismo navegador): puede que session/players ya estén en el store.
-  // Si no, intentamos hacer join automático con el playerId de localStorage o el nombre proporcionado.
+  // -- Auto join al cargar la página ----------------------------------
   useEffect(() => {
     if (joinedRef.current) return;
     if (connectionStatus !== 'connected') return;
@@ -55,7 +67,6 @@ export default function GameRoom({ code, initialName = '', isHost = false }: Pro
     const resumePlayerId = getPlayerId(upperCode) ?? undefined;
 
     async function tryAutoJoin() {
-      // Validamos que la sala exista antes de intentar conectar.
       try {
         const info = await fetchSessionPublic(upperCode);
         if (!info.exists) {
@@ -112,7 +123,6 @@ export default function GameRoom({ code, initialName = '', isHost = false }: Pro
     setError,
   ]);
 
-  // Cuando session llega por broadcast (host justo creó), también marcamos ready.
   useEffect(() => {
     if (session && session.code === upperCode && stage !== 'ready') {
       const stored = getPlayerId(upperCode);
@@ -121,6 +131,28 @@ export default function GameRoom({ code, initialName = '', isHost = false }: Pro
     }
   }, [session, upperCode, stage, myPlayerId, setMyPlayerId]);
 
+  const handleStart = useCallback(async () => {
+    return startSession();
+  }, [startSession]);
+
+  const handleAdvance = useCallback(async () => {
+    setLastRoundEnded(null);
+    await nextRound();
+  }, [nextRound, setLastRoundEnded]);
+
+  const handleLetter = useCallback(
+    async (letter: string) => {
+      setGuessing(true);
+      try {
+        await guess(letter);
+      } finally {
+        setGuessing(false);
+      }
+    },
+    [guess],
+  );
+
+  // -- Renders --------------------------------------------------------
   if (stage === 'fatal') {
     return (
       <section className="mx-auto flex max-w-md flex-col gap-4 p-6 text-slate-100">
@@ -220,27 +252,73 @@ export default function GameRoom({ code, initialName = '', isHost = false }: Pro
     );
   }
 
+  // -- Sesión finalizada → tabla final --------------------------------
+  if (session.status === SessionStatus.FINISHED && finalLeaderboard) {
+    return (
+      <FinalLeaderboard
+        payload={finalLeaderboard}
+        players={players}
+        myPlayerId={myPlayerId}
+      />
+    );
+  }
+
+  // -- Lobby ----------------------------------------------------------
   if (session.status === SessionStatus.LOBBY) {
+    const userIsHost =
+      isHost || (myPlayerId !== null && session.hostId === myPlayerId);
     return (
       <LobbyView
         session={session}
         players={players}
         myPlayerId={myPlayerId}
-        isHost={
-          isHost ||
-          (myPlayerId !== null && session.hostId === myPlayerId)
-        }
+        isHost={userIsHost}
+        onStart={handleStart}
       />
     );
   }
 
+  // -- Ronda activa ---------------------------------------------------
+  const userIsHost = myPlayerId !== null && session.hostId === myPlayerId;
+  const showResult =
+    lastRoundEnded !== null &&
+    (session.status === SessionStatus.ROUND_ENDED ||
+      session.status === SessionStatus.IN_PROGRESS);
+
   return (
-    <section className="mx-auto flex max-w-md flex-col gap-3 p-6 text-slate-200">
-      <h2 className="text-xl font-bold">Estado: {session.status}</h2>
-      <p className="text-sm">
-        El gameplay llega en la siguiente fase. Por ahora la sala está en{' '}
-        <code className="rounded bg-slate-700 px-1">{session.status}</code>.
-      </p>
-    </section>
+    <>
+      {currentRound && myRoundState ? (
+        <RoundView
+          session={session}
+          round={currentRound}
+          myState={myRoundState}
+          players={players}
+          myPlayerId={myPlayerId}
+          opponents={opponents}
+          scoreboard={scoreboard}
+          guessing={guessing}
+          onLetter={handleLetter}
+        />
+      ) : (
+        <section className="mx-auto flex max-w-md flex-col items-center gap-3 p-6 text-slate-200">
+          <div
+            className="h-8 w-8 animate-spin rounded-full border-2 border-amber-300 border-t-transparent"
+            aria-hidden
+          />
+          <p className="text-sm">Preparando ronda…</p>
+        </section>
+      )}
+
+      {showResult && lastRoundEnded && (
+        <RoundResultModal
+          payload={lastRoundEnded}
+          players={players}
+          myPlayerId={myPlayerId}
+          isHost={userIsHost}
+          isFinalRound={lastRoundEnded.isFinalRound}
+          onAdvance={handleAdvance}
+        />
+      )}
+    </>
   );
 }
