@@ -69,7 +69,13 @@
       "Bash(pnpm dev:web)",
       "Bash(curl -sf http://localhost:3000/health/liveness -o /dev/null -w \"API: %{http_code}\\\\n\")",
       "Bash(curl -sf -X POST http://localhost:3000/sessions -H \"Content-Type: application/json\" -d '{\"hostName\":\"test\",\"categoryId\":\"animales\",\"totalRounds\":3}' -w \"\\\\nPOST: %{http_code}\\\\n\")",
-      "PowerShell(Get-NetTCPConnection -LocalPort 4321 -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }; \"ports cleared\")"
+      "PowerShell(Get-NetTCPConnection -LocalPort 4321 -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }; \"ports cleared\")",
+      "Bash(gh auth *)",
+      "Bash(gh repo *)",
+      "Bash(git remote *)",
+      "Bash(git push *)",
+      "Bash(git rm *)",
+      "Bash(git check-ignore *)"
     ]
   }
 }
