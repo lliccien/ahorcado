@@ -4,15 +4,21 @@
 #    expose externo. Solo la `api` los alcanza por sus nombres internos.
 #  - Ambos servicios externos (web y api) se conectan a `dokploy-network`
 #    (red externa creada por Dokploy) para que Traefik los descubra.
-#  - Routing del navegador (mismo dominio):
-#      /            → web   (Astro SSR)
-#      /api/*       → api   (configurar Strip Path = ON en la UI)
-#      /socket.io/* → api   (Strip Path = OFF, Socket.IO necesita su path)
+#
+# Puertos internos (no se publican al host):
+#   api: ${API_PORT:-3000}     (Nest)
+#   web: ${WEB_PORT:-4321}     (Astro SSR — mismo puerto que `astro dev`)
+#
+# Routing del navegador (mismo dominio):
+#   /            → web   (Astro SSR)
+#   /api/*       → api   (configurar Strip Path = ON en la UI)
+#   /socket.io/* → api   (Strip Path = OFF, Socket.IO necesita su path)
 #
 # Variables que debes definir en la pestaña Environment de Dokploy:
 #   DB_PASSWORD=<contraseña que quieras>
 # Opcionales (con defaults sensatos):
-#   DB_USERNAME, DB_NAME, CORS_ORIGIN
+#   DB_USERNAME, DB_NAME, DB_HOST, DB_PORT, REDIS_HOST, REDIS_PORT,
+#   API_PORT, WEB_PORT, NODE_ENV, CORS_ORIGIN
 
 services:
   db:
@@ -49,20 +55,21 @@ services:
       context: ..
       dockerfile: docker/Dockerfile.api
     environment:
-      NODE_ENV: production
-      DB_HOST: db
-      DB_PORT: 5432
+      NODE_ENV: ${NODE_ENV:-production}
+      API_PORT: ${API_PORT:-3000}
+      DB_HOST: ${DB_HOST:-db}
+      DB_PORT: ${DB_PORT:-5432}
       DB_USERNAME: ${DB_USERNAME:-ahorcado}
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD requerido}
       DB_NAME: ${DB_NAME:-ahorcado}
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
       # En prod el navegador entra por el mismo dominio vía Traefik,
       # así que CORS no es necesario. Solo defínelo si vas a exponer
       # el API a otro origen distinto (lista separada por comas).
       CORS_ORIGIN: ${CORS_ORIGIN:-}
     expose:
-      - "3000"
+      - "${API_PORT:-3000}"
     networks:
       - default
       - dokploy-network
@@ -77,7 +84,7 @@ services:
         - "CMD"
         - "node"
         - "-e"
-        - "require('http').get('http://localhost:3000/health/liveness',{timeout:3000},r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
+        - "require('http').get('http://localhost:'+(process.env.API_PORT||3000)+'/health/liveness',{timeout:3000},r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
       interval: 10s
       timeout: 5s
       retries: 12
@@ -90,13 +97,13 @@ services:
       args:
         # Mismo origen: el cliente Astro llamará a `/api/*` y socket.io
         # al propio dominio. Traefik enruta al backend.
-        PUBLIC_API_URL: ""
+        PUBLIC_API_URL: ${PUBLIC_API_URL:-}
     environment:
-      NODE_ENV: production
+      NODE_ENV: ${NODE_ENV:-production}
       HOST: 0.0.0.0
-      PORT: 3000
+      PORT: ${WEB_PORT:-4321}
     expose:
-      - "3000"
+      - "${WEB_PORT:-4321}"
     networks:
       - default
       - dokploy-network
@@ -109,7 +116,7 @@ services:
         - "CMD"
         - "node"
         - "-e"
-        - "require('http').get('http://localhost:3000/',{timeout:3000},r=>process.exit(r.statusCode<500?0:1)).on('error',()=>process.exit(1))"
+        - "require('http').get('http://localhost:'+(process.env.PORT||4321)+'/',{timeout:3000},r=>process.exit(r.statusCode<500?0:1)).on('error',()=>process.exit(1))"
       interval: 15s
       timeout: 5s
       retries: 8
