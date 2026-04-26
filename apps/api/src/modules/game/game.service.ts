@@ -15,6 +15,7 @@ import {
   type RoundPublicState,
   type RoundStartedPayload,
   type ScoreboardEntry,
+  type SessionSnapshot,
   type SessionState,
   SESSION_TTL_SECONDS,
   SessionStatus,
@@ -55,6 +56,7 @@ const roundResolvedKey = (code: string, n: number) =>
 const scoreboardKey = (code: string) => `session:${code}:scoreboard`;
 const playerGuessLockKey = (code: string, playerId: string) =>
   `session:${code}:lock:guess:${playerId}`;
+const lastRoundEndedKey = (code: string) => `session:${code}:lastRoundEnded`;
 
 interface RoundStateInternal {
   roundNumber: number;
@@ -164,6 +166,7 @@ export class GameService {
           'EX',
           SESSION_TTL_SECONDS,
         ),
+      this.redis.del(lastRoundEndedKey(sessionState.code)),
     ]);
 
     const perPlayer = new Map<string, PlayerRoundState>();
@@ -460,6 +463,11 @@ export class GameService {
       scoreboard,
       isFinalRound,
     };
+    await this.redis.setJson(
+      lastRoundEndedKey(state.code),
+      payload,
+      SESSION_TTL_SECONDS,
+    );
     return payload;
   }
 
@@ -554,6 +562,61 @@ export class GameService {
       endedAt: round.endedAt,
       winnerId: round.winnerId,
       livesPerPlayer: round.livesPerPlayer,
+    };
+  }
+
+  /**
+   * Snapshot completo de la sesión para el jugador dado, listo para hidratar
+   * la UI tras una recarga o reconexión.
+   */
+  async buildSnapshot(
+    code: string,
+    playerId: string,
+  ): Promise<SessionSnapshot | null> {
+    const state = await this.sessions.getSessionState(code);
+    if (!state) return null;
+    const players = await this.sessions.listPlayers(code);
+
+    const inActiveRound =
+      state.status === SessionStatus.IN_PROGRESS ||
+      state.status === SessionStatus.ROUND_ENDED;
+
+    const currentRound = inActiveRound
+      ? await this.getRoundPublic(code, state.currentRound)
+      : null;
+
+    const myState = inActiveRound
+      ? await this.getMyRoundState(code, state.currentRound, playerId)
+      : null;
+
+    const opponents: OpponentProgress[] = [];
+    if (inActiveRound) {
+      for (const p of players) {
+        if (p.id === playerId) continue;
+        const ps = await this.getMyRoundState(code, state.currentRound, p.id);
+        if (!ps) continue;
+        opponents.push({
+          playerId: p.id,
+          livesRemaining: ps.livesRemaining,
+          revealedCount: ps.revealedCount,
+          solved: ps.solved,
+        });
+      }
+    }
+
+    const scoreboard = await this.getScoreboard(code, players);
+    const lastRoundEnded = await this.redis.getJson<RoundEndedPayload>(
+      lastRoundEndedKey(code),
+    );
+
+    return {
+      session: state,
+      players,
+      currentRound,
+      myState,
+      opponents,
+      scoreboard,
+      lastRoundEnded,
     };
   }
 

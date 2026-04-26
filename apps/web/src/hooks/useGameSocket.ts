@@ -9,6 +9,7 @@ import {
   type ErrorPayload,
   type GameFinishedPayload,
   type GuessLetterResult,
+  type HostChangedPayload,
   type JoinSessionAck,
   type JoinSessionPayload,
   type OpponentProgress,
@@ -18,6 +19,7 @@ import {
   type RoundEndedPayload,
   type RoundStartedPayload,
   type ServerToClientEvents,
+  type SessionSnapshot,
   type SessionState,
   type SessionStartedPayload,
 } from '@ahorcado/shared';
@@ -52,6 +54,7 @@ export interface UseGameSocketReturn {
   startSession: () => Promise<{ ok: true } | ErrorPayload>;
   nextRound: () => Promise<{ ok: true } | ErrorPayload>;
   guess: (letter: string) => Promise<GuessLetterResult | ErrorPayload>;
+  resync: () => Promise<SessionSnapshot | ErrorPayload>;
 }
 
 export function useGameSocket(): UseGameSocketReturn {
@@ -70,6 +73,17 @@ export function useGameSocket(): UseGameSocketReturn {
   const setScoreboard = useGameStore((s) => s.setScoreboard);
   const setLastRoundEnded = useGameStore((s) => s.setLastRoundEnded);
   const setFinalLeaderboard = useGameStore((s) => s.setFinalLeaderboard);
+
+  const applySnapshot = (snap: SessionSnapshot) => {
+    setSession(snap.session);
+    setPlayers(snap.players);
+    setCurrentRound(snap.currentRound);
+    setMyRoundState(snap.myState);
+    resetOpponents();
+    for (const op of snap.opponents) setOpponentProgress(op);
+    setScoreboard(snap.scoreboard);
+    setLastRoundEnded(snap.lastRoundEnded);
+  };
 
   if (!socketRef.current) {
     socketRef.current = io(`${API_BASE_URL}${WS_NAMESPACE}`, {
@@ -102,6 +116,15 @@ export function useGameSocket(): UseGameSocketReturn {
     const onPlayerReconnected = (p: PlayerReconnectedPayload) =>
       setPlayers(p.players);
 
+    const onHostChanged = (p: HostChangedPayload) => {
+      // Actualizamos players (con isHost flips) y patchamos session.hostId
+      setPlayers(p.players);
+      const cur = useGameStore.getState().session;
+      if (cur) setSession({ ...cur, hostId: p.hostId });
+    };
+
+    const onStateSync = (snap: SessionSnapshot) => applySnapshot(snap);
+
     const onRoundStarted = (p: RoundStartedPayload) => {
       setCurrentRound(p.round);
       setMyRoundState(p.myState);
@@ -128,10 +151,12 @@ export function useGameSocket(): UseGameSocketReturn {
     sock.on('player:joined', onPlayerJoined);
     sock.on('player:left', onPlayerLeft);
     sock.on('player:reconnected', onPlayerReconnected);
+    sock.on('host:changed', onHostChanged);
     sock.on('round:started', onRoundStarted);
     sock.on('round:opponentProgress', onOpponentProgress);
     sock.on('round:ended', onRoundEnded);
     sock.on('game:finished', onGameFinished);
+    sock.on('state:sync', onStateSync);
     sock.on('error', onError);
 
     setConnectionStatus(sock.connected ? 'connected' : 'connecting');
@@ -146,10 +171,12 @@ export function useGameSocket(): UseGameSocketReturn {
       sock.off('player:joined', onPlayerJoined);
       sock.off('player:left', onPlayerLeft);
       sock.off('player:reconnected', onPlayerReconnected);
+      sock.off('host:changed', onHostChanged);
       sock.off('round:started', onRoundStarted);
       sock.off('round:opponentProgress', onOpponentProgress);
       sock.off('round:ended', onRoundEnded);
       sock.off('game:finished', onGameFinished);
+      sock.off('state:sync', onStateSync);
       sock.off('error', onError);
     };
   }, [
@@ -239,7 +266,6 @@ export function useGameSocket(): UseGameSocketReturn {
             return;
           }
           if (response) {
-            // Actualizar mi estado optimistamente con la respuesta
             patchMyRoundState({
               guessed: response.guessed,
               livesRemaining: response.livesRemaining,
@@ -254,6 +280,26 @@ export function useGameSocket(): UseGameSocketReturn {
         });
       });
 
+    const resync: UseGameSocketReturn['resync'] = () =>
+      new Promise((resolve) => {
+        sock.emit('state:resync', {}, (response) => {
+          if (!response) {
+            resolve({
+              code: 'INTERNAL' as never,
+              message: 'Sin respuesta del servidor',
+            });
+            return;
+          }
+          if (isErrorPayload(response)) {
+            setError(response);
+            resolve(response);
+            return;
+          }
+          applySnapshot(response as SessionSnapshot);
+          resolve(response as SessionSnapshot);
+        });
+      });
+
     return {
       socket: sock,
       createSession,
@@ -262,6 +308,7 @@ export function useGameSocket(): UseGameSocketReturn {
       startSession,
       nextRound,
       guess,
+      resync,
     };
   }, [
     setError,

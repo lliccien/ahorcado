@@ -129,13 +129,48 @@ export class SessionsService {
     code: string,
     playerId: string,
     connected: boolean,
-  ): Promise<{ state: SessionState; player: Player; players: Player[] } | null> {
+  ): Promise<{
+    state: SessionState;
+    player: Player;
+    players: Player[];
+    hostChanged: { newHostId: string } | null;
+  } | null> {
     const state = await this.repo.getSessionState(code);
     if (!state) return null;
     const player = await this.repo.setPlayerConnected(code, playerId, connected);
     if (!player) return null;
-    const players = await this.repo.listPlayers(code);
-    return { state, player, players };
+    let players = await this.repo.listPlayers(code);
+
+    let hostChanged: { newHostId: string } | null = null;
+    if (
+      !connected &&
+      playerId === state.hostId &&
+      state.status !== SessionStatus.FINISHED
+    ) {
+      const nextHost = players.find((p) => p.connected && p.id !== playerId);
+      if (nextHost) {
+        await this.promoteHost(code, players, state, nextHost.id);
+        hostChanged = { newHostId: nextHost.id };
+        players = await this.repo.listPlayers(code);
+      }
+    }
+
+    return { state, player, players, hostChanged };
+  }
+
+  private async promoteHost(
+    code: string,
+    players: Player[],
+    state: SessionState,
+    newHostId: string,
+  ): Promise<void> {
+    for (const p of players) {
+      const shouldBeHost = p.id === newHostId;
+      if (p.isHost === shouldBeHost) continue;
+      await this.repo.upsertPlayer(code, { ...p, isHost: shouldBeHost });
+    }
+    await this.repo.setSessionState({ ...state, hostId: newHostId });
+    this.logger.log(`Host transferido en code=${code} → ${newHostId}`);
   }
 
   async getSessionPublic(code: string): Promise<{

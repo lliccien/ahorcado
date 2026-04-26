@@ -13,12 +13,12 @@ import type { Namespace, Socket } from 'socket.io';
 
 import {
   ErrorCode,
+  ROUND_END_DELAY_MS,
   WS_NAMESPACE,
   type CreateSessionAck,
   type ErrorPayload,
   type JoinSessionAck,
-  type Player,
-  type SessionState,
+  type SessionSnapshot,
   type SocketData,
 } from '@ahorcado/shared';
 
@@ -48,6 +48,13 @@ export class RealtimeGateway
 {
   private readonly logger = new Logger(RealtimeGateway.name);
   private readonly filter = new WsExceptionFilter();
+
+  /**
+   * Timers de auto-advance entre rondas. Mientras corre uno, está activo el
+   * countdown de 5s que avanza la sesión sin esperar al host. Si el host
+   * pulsa "Siguiente ronda" antes del timeout, se cancela aquí.
+   */
+  private readonly autoAdvanceTimers = new Map<string, NodeJS.Timeout>();
 
   /** Cuando se declara `namespace`, server ya es Namespace, no Server raíz. */
   @WebSocketServer()
@@ -79,6 +86,14 @@ export class RealtimeGateway
           playerId: data.playerId,
           players: result.players,
         });
+        if (result.hostChanged) {
+          this.server
+            .to(roomName(data.sessionCode))
+            .emit('host:changed', {
+              hostId: result.hostChanged.newHostId,
+              players: result.players,
+            });
+        }
       }
     }
     this.logger.debug(`Cliente desconectado: ${client.id}`);
@@ -173,6 +188,14 @@ export class RealtimeGateway
           playerId: data.playerId,
           players: result.players,
         });
+        if (result.hostChanged) {
+          this.server
+            .to(roomName(data.sessionCode))
+            .emit('host:changed', {
+              hostId: result.hostChanged.newHostId,
+              players: result.players,
+            });
+        }
       }
       await client.leave(roomName(data.sessionCode));
     }
@@ -181,20 +204,26 @@ export class RealtimeGateway
   @SubscribeMessage('state:resync')
   async handleResync(
     @ConnectedSocket() client: Socket,
-  ): Promise<
-    { session: SessionState | null; players: Player[] } | ErrorPayload
-  > {
+  ): Promise<SessionSnapshot | ErrorPayload> {
     try {
       const data = client.data as Partial<SocketData>;
-      if (!data?.sessionCode) {
+      if (!data?.sessionCode || !data.playerId) {
         return {
           code: ErrorCode.SESSION_NOT_FOUND,
           message: 'Socket sin sesión asociada',
         };
       }
-      const session = await this.sessions.getState(data.sessionCode);
-      const players = await this.sessions.listPlayers(data.sessionCode);
-      return { session, players };
+      const snapshot = await this.game.buildSnapshot(
+        data.sessionCode,
+        data.playerId,
+      );
+      if (!snapshot) {
+        return {
+          code: ErrorCode.SESSION_NOT_FOUND,
+          message: 'No encontramos la sala',
+        };
+      }
+      return snapshot;
     } catch (err) {
       return this.filter.toErrorPayload(err);
     }
@@ -252,34 +281,61 @@ export class RealtimeGateway
           message: 'Socket sin sesión asociada',
         };
       }
-      const advance = await this.game.advanceRound(
-        data.sessionCode,
-        data.playerId,
-      );
-      if (advance.kind === 'finished') {
-        this.server
-          .to(roomName(data.sessionCode))
-          .emit('game:finished', advance.payload);
-      } else {
-        const start = advance.result;
-        this.server
-          .to(roomName(data.sessionCode))
-          .emit('session:started', { session: start.state });
-        const sockets = await this.server
-          .in(roomName(data.sessionCode))
-          .fetchSockets();
-        for (const s of sockets) {
-          const sd = s.data as Partial<SocketData> | undefined;
-          if (!sd?.playerId) continue;
-          const myState = start.perPlayer.get(sd.playerId);
-          if (myState) {
-            s.emit('round:started', { round: start.roundPublic, myState });
-          }
-        }
-      }
+      this.cancelAutoAdvance(data.sessionCode);
+      await this.triggerAdvance(data.sessionCode, data.playerId);
       return { ok: true };
     } catch (err) {
       return this.filter.toErrorPayload(err);
+    }
+  }
+
+  private async triggerAdvance(
+    code: string,
+    requesterId?: string,
+  ): Promise<void> {
+    const advance = await this.game.advanceRound(code, requesterId);
+    if (advance.kind === 'finished') {
+      this.server.to(roomName(code)).emit('game:finished', advance.payload);
+      return;
+    }
+    const start = advance.result;
+    this.server
+      .to(roomName(code))
+      .emit('session:started', { session: start.state });
+    const sockets = await this.server.in(roomName(code)).fetchSockets();
+    for (const s of sockets) {
+      const sd = s.data as Partial<SocketData> | undefined;
+      if (!sd?.playerId) continue;
+      const myState = start.perPlayer.get(sd.playerId);
+      if (myState) {
+        s.emit('round:started', { round: start.roundPublic, myState });
+      }
+    }
+  }
+
+  private scheduleAutoAdvance(code: string, isFinalRound: boolean): void {
+    this.cancelAutoAdvance(code);
+    const handle = setTimeout(() => {
+      this.autoAdvanceTimers.delete(code);
+      this.triggerAdvance(code).catch((err) => {
+        this.logger.warn(
+          `Auto-advance code=${code} falló: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      });
+    }, ROUND_END_DELAY_MS);
+    // Permitir que el proceso termine si solo queda este timer
+    if (typeof handle.unref === 'function') handle.unref();
+    this.autoAdvanceTimers.set(code, handle);
+    this.logger.debug(
+      `Auto-advance programado code=${code} en ${ROUND_END_DELAY_MS}ms (final=${isFinalRound})`,
+    );
+  }
+
+  private cancelAutoAdvance(code: string): void {
+    const handle = this.autoAdvanceTimers.get(code);
+    if (handle) {
+      clearTimeout(handle);
+      this.autoAdvanceTimers.delete(code);
     }
   }
 
@@ -311,6 +367,10 @@ export class RealtimeGateway
         this.server
           .to(roomName(data.sessionCode))
           .emit('round:ended', outcome.endedPayload);
+        this.scheduleAutoAdvance(
+          data.sessionCode,
+          outcome.endedPayload.isFinalRound,
+        );
       }
 
       return outcome.result;

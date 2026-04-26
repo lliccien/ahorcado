@@ -95,7 +95,14 @@ export interface SessionSnapshot {
   players: Player[];
   currentRound: RoundPublicState | null;
   myState: PlayerRoundState | null;
+  opponents: OpponentProgress[];
   scoreboard: ScoreboardEntry[];
+  lastRoundEnded: RoundEndedPayload | null;
+}
+
+export interface HostChangedPayload {
+  hostId: string;
+  players: Player[];
 }
 
 export interface WordSummary {

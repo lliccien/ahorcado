@@ -4,6 +4,7 @@ import {
   ErrorCode,
   SessionStatus,
   type ErrorPayload,
+  type JoinSessionAck,
 } from '@ahorcado/shared';
 
 import { useGameSocket } from '../../hooks/useGameSocket';
@@ -32,7 +33,8 @@ type Stage = 'connecting' | 'needsName' | 'joining' | 'ready' | 'fatal';
 
 export default function GameRoom({ code, initialName = '', isHost = false }: Props) {
   const upperCode = code.toUpperCase();
-  const { joinSession, startSession, nextRound, guess } = useGameSocket();
+  const { socket, joinSession, startSession, nextRound, guess, resync } =
+    useGameSocket();
 
   const session = useGameStore((s) => s.session);
   const players = useGameStore((s) => s.players);
@@ -53,6 +55,11 @@ export default function GameRoom({ code, initialName = '', isHost = false }: Pro
   const setLastRoundEnded = useGameStore((s) => s.setLastRoundEnded);
 
   const joinedRef = useRef(false);
+  const lastJoinRef = useRef<{
+    code: string;
+    name: string;
+    playerId: string;
+  } | null>(null);
   const [stage, setStage] = useState<Stage>('connecting');
   const [pendingName, setPendingName] = useState<string>(
     () => initialName || getLastName(),
@@ -110,6 +117,19 @@ export default function GameRoom({ code, initialName = '', isHost = false }: Pro
         setError(errPayload);
         return;
       }
+      const okAck = ack as JoinSessionAck;
+      lastJoinRef.current = {
+        code: upperCode,
+        name: nameToUse || 'Jugador',
+        playerId: okAck.playerId,
+      };
+      // Si la sala ya está en juego, hidratar contexto completo
+      if (
+        okAck.session.status !== SessionStatus.LOBBY &&
+        okAck.session.status !== SessionStatus.FINISHED
+      ) {
+        await resync();
+      }
       setStage('ready');
     }
 
@@ -120,8 +140,33 @@ export default function GameRoom({ code, initialName = '', isHost = false }: Pro
     initialName,
     pendingName,
     joinSession,
+    resync,
     setError,
   ]);
+
+  // Re-join automático tras reconexión: socket.io reabre la conexión pero el
+  // server no recuerda nuestra session/playerId; rehacemos session:join para
+  // re-asignar el room y luego state:resync para hidratar la UI.
+  useEffect(() => {
+    function onConnect() {
+      const last = lastJoinRef.current;
+      if (!last) return;
+      void (async () => {
+        const ack = await joinSession({
+          code: last.code,
+          name: last.name,
+          resumePlayerId: last.playerId,
+        });
+        if ('playerId' in ack) {
+          await resync();
+        }
+      })();
+    }
+    socket.on('connect', onConnect);
+    return () => {
+      socket.off('connect', onConnect);
+    };
+  }, [socket, joinSession, resync]);
 
   useEffect(() => {
     if (session && session.code === upperCode && stage !== 'ready') {
@@ -209,6 +254,18 @@ export default function GameRoom({ code, initialName = '', isHost = false }: Pro
             }
             if ('playerId' in ack && typeof ack.playerId === 'string') {
               setPlayerId(upperCode, ack.playerId);
+              lastJoinRef.current = {
+                code: upperCode,
+                name: trimmed,
+                playerId: ack.playerId,
+              };
+              const okAck = ack as JoinSessionAck;
+              if (
+                okAck.session.status !== SessionStatus.LOBBY &&
+                okAck.session.status !== SessionStatus.FINISHED
+              ) {
+                await resync();
+              }
             }
             setStage('ready');
           }}

@@ -1,6 +1,7 @@
 import type { ErrorCode } from './enums.js';
 import type {
   GameFinishedPayload,
+  HostChangedPayload,
   OpponentProgress,
   Player,
   PlayerRoundState,
@@ -83,6 +84,7 @@ export interface ServerToClientEvents {
   'player:joined': (payload: PlayerJoinedPayload) => void;
   'player:left': (payload: PlayerLeftPayload) => void;
   'player:reconnected': (payload: PlayerReconnectedPayload) => void;
+  'host:changed': (payload: HostChangedPayload) => void;
   'round:started': (payload: RoundStartedPayload) => void;
   'round:guess:result': (payload: GuessLetterResult) => void;
   'round:opponentProgress': (payload: OpponentProgress) => void;
