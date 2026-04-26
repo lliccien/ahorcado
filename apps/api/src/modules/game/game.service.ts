@@ -1,5 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
 import { randomUUID } from 'node:crypto';
+import { Repository } from 'typeorm';
 
 import {
   GUESS_LOCK_TTL_MS,
@@ -22,6 +24,7 @@ import {
 } from '@ahorcado/shared';
 
 import { RedisService } from '../redis/redis.service';
+import { GameSessionEntity } from '../sessions/entities/game-session.entity';
 import { SessionsRepository } from '../sessions/sessions.repository';
 import {
   errNotHost,
@@ -31,6 +34,8 @@ import {
   errSessionNotFound,
 } from '../sessions/sessions.errors';
 import { WordsService } from '../words/words.service';
+import { RoundResultEntity } from './entities/round-result.entity';
+import { RoundEntity } from './entities/round.entity';
 import {
   applyLetterToMask,
   buildInitialMask,
@@ -61,6 +66,8 @@ const lastRoundEndedKey = (code: string) => `session:${code}:lastRoundEnded`;
 interface RoundStateInternal {
   roundNumber: number;
   wordId: string;
+  wordText: string;
+  wordDisplay: string;
   wordLength: number;
   categorySlug: string;
   categoryName: string;
@@ -93,6 +100,12 @@ export class GameService {
     private readonly redis: RedisService,
     private readonly sessions: SessionsRepository,
     private readonly words: WordsService,
+    @InjectRepository(RoundEntity)
+    private readonly roundRepo: Repository<RoundEntity>,
+    @InjectRepository(RoundResultEntity)
+    private readonly roundResultRepo: Repository<RoundResultEntity>,
+    @InjectRepository(GameSessionEntity)
+    private readonly sessionRepoOrm: Repository<GameSessionEntity>,
   ) {}
 
   // ------------------------------------------------------------------
@@ -142,6 +155,8 @@ export class GameService {
     const round: RoundStateInternal = {
       roundNumber: sessionState.currentRound,
       wordId: word.id,
+      wordText: word.text,
+      wordDisplay: word.display,
       wordLength: word.text.length,
       categorySlug: word.categorySlug,
       categoryName: word.categoryName,
@@ -468,7 +483,67 @@ export class GameService {
       payload,
       SESSION_TTL_SECONDS,
     );
+
+    await this.persistRoundHistory(state, updatedRound, perPlayer, players);
+
     return payload;
+  }
+
+  /**
+   * Persiste a Postgres la ronda recién terminada y los resultados de cada
+   * jugador. Se llama desde finalizeRound() para que el historial quede
+   * íntegro aunque el proceso se caiga antes de llegar a finishSession().
+   */
+  private async persistRoundHistory(
+    state: SessionState,
+    round: RoundStateInternal,
+    perPlayer: RoundPlayerSummary[],
+    players: Player[],
+  ): Promise<void> {
+    try {
+      const entity = this.roundRepo.create({
+        sessionId: state.id,
+        roundNumber: round.roundNumber,
+        wordText: round.wordText,
+        wordDisplay: round.wordDisplay,
+        categorySlug: round.categorySlug,
+        winnerPlayerId: round.winnerId,
+        startedAt: new Date(round.startedAt),
+        endedAt: round.endedAt ? new Date(round.endedAt) : null,
+      });
+      const saved = await this.roundRepo.save(entity);
+
+      const results: RoundResultEntity[] = [];
+      for (const summary of perPlayer) {
+        const ps = await this.redis.getJson<PlayerRoundState>(
+          playerRoundKey(state.code, round.roundNumber, summary.playerId),
+        );
+        results.push(
+          this.roundResultRepo.create({
+            roundId: saved.id,
+            playerId: summary.playerId,
+            livesRemaining: summary.livesRemaining,
+            lettersGuessed: ps?.guessed.join('') ?? '',
+            solved: summary.solved,
+            solvedAtMs:
+              summary.solvedAtMs !== null ? String(summary.solvedAtMs) : null,
+          }),
+        );
+      }
+      if (results.length > 0) {
+        await this.roundResultRepo.save(results);
+      }
+
+      // Vista de jugadores referenciada solo para evitar warnings; se podría
+      // usar para validar consistencia (no críticos).
+      void players;
+    } catch (err) {
+      this.logger.error(
+        `No se pudo persistir la ronda ${round.roundNumber} de la sala ${state.code}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
   }
 
   // ------------------------------------------------------------------
@@ -514,6 +589,30 @@ export class GameService {
 
     const players = await this.sessions.listPlayers(state.code);
     const leaderboard = await this.getScoreboard(state.code, players);
+    const sortedLeaderboard = [...leaderboard].sort((a, b) => b.wins - a.wins);
+    const champion =
+      sortedLeaderboard.length > 0 && sortedLeaderboard[0].wins > 0
+        ? sortedLeaderboard[0].playerId
+        : null;
+
+    try {
+      await this.sessionRepoOrm.update(
+        { id: state.id },
+        {
+          status: SessionStatus.FINISHED,
+          currentRound: state.currentRound,
+          finishedAt: new Date(),
+          winnerPlayerId: champion,
+        },
+      );
+    } catch (err) {
+      this.logger.error(
+        `No se pudo persistir el cierre de la sala ${state.code}: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+
     return {
       sessionCode: state.code,
       leaderboard,
