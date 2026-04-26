@@ -26,7 +26,7 @@ import {
   type SessionStartedPayload,
 } from '@ahorcado/shared';
 
-import { API_BASE_URL } from '../lib/api';
+import { API_WS_URL } from '../lib/api';
 import { setPlayerId } from '../lib/storage';
 import { useGameStore } from '../stores/gameStore';
 import { useToastStore } from '../stores/toastStore';
@@ -91,7 +91,7 @@ export function useGameSocket(): UseGameSocketReturn {
   };
 
   if (!socketRef.current) {
-    socketRef.current = io(`${API_BASE_URL}${WS_NAMESPACE}`, {
+    socketRef.current = io(`${API_WS_URL}${WS_NAMESPACE}`, {
       transports: ['websocket'],
       autoConnect: true,
       reconnection: true,

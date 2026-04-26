@@ -23,14 +23,15 @@ export class RedisIoAdapter extends IoAdapter {
 
   override createIOServer(port: number, options?: ServerOptions): unknown {
     // Mismo criterio que main.ts: en dev permitimos todos los orígenes para
-    // poder jugar desde la LAN sin choques de CORS.
+    // poder jugar desde la LAN sin choques de CORS. En prod, mismo origen
+    // vía reverse proxy → CORS cerrado salvo CORS_ORIGIN explícito.
     const isDev = process.env.NODE_ENV !== 'production';
-    const corsEnv = process.env.CORS_ORIGIN;
+    const corsEnv = process.env.CORS_ORIGIN?.trim();
     const origin: boolean | string[] = isDev
       ? true
       : corsEnv
-        ? corsEnv.split(',').map((o) => o.trim())
-        : true;
+        ? corsEnv.split(',').map((o) => o.trim()).filter(Boolean)
+        : false;
 
     const server = super.createIOServer(port, {
       ...options,

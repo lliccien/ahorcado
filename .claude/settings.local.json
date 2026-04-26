@@ -82,7 +82,10 @@
       "Bash(curl -sf http://localhost:3099/manifest.webmanifest -o /dev/null -w \"manifest HTTP %{http_code}\\\\n\")",
       "Bash(curl -sf http://localhost:3099/sw.js -o /dev/null -w \"sw HTTP %{http_code}\\\\n\")",
       "Bash(docker rm *)",
-      "Bash(docker rmi *)"
+      "Bash(docker rmi *)",
+      "Bash(pwd -W)",
+      "Bash(MSYS_NO_PATHCONV=1 docker run --rm -v \"$\\(pwd -W\\)/docker/Caddyfile:/etc/caddy/Caddyfile:ro\" caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile)",
+      "Bash(docker network *)"
     ]
   }
 }

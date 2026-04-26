@@ -8,7 +8,7 @@ import {
 } from '@ahorcado/shared';
 
 import { CATEGORY_OPTIONS } from '../../lib/categories';
-import { API_BASE_URL } from '../../lib/api';
+import { API_HTTP_URL } from '../../lib/api';
 import { getLastName, setLastName, setPlayerId } from '../../lib/storage';
 
 export default function CreateSessionForm() {
@@ -32,7 +32,7 @@ export default function CreateSessionForm() {
     }
     setSubmitting(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/sessions`, {
+      const res = await fetch(`${API_HTTP_URL}/sessions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

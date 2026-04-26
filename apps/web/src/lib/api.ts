@@ -2,7 +2,7 @@ const RAW_BASE =
   (typeof import.meta !== 'undefined' && import.meta.env?.PUBLIC_API_URL) ||
   (typeof window !== 'undefined' &&
     (window as unknown as { __PUBLIC_API_URL__?: string }).__PUBLIC_API_URL__) ||
-  'http://localhost:3000';
+  '';
 
 /**
  * Si el usuario accede desde la LAN (ej. `http://192.168.1.20:4321/` desde un
@@ -31,7 +31,28 @@ function resolveBaseUrl(raw: string): string {
   }
 }
 
-export const API_BASE_URL: string = resolveBaseUrl(String(RAW_BASE));
+const RESOLVED = resolveBaseUrl(String(RAW_BASE));
+
+/**
+ * URL base para las llamadas REST.
+ *
+ * - En dev (`PUBLIC_API_URL=http://localhost:3000`) apunta directo al backend.
+ * - En prod (sin `PUBLIC_API_URL`) usamos `/api` y dejamos que el reverse
+ *   proxy (Caddy) reenvíe al backend bajo el mismo origen, sin CORS.
+ */
+export const API_HTTP_URL: string = RESOLVED || '/api';
+
+/**
+ * URL base para socket.io.
+ *
+ * socket.io tiene una ruta canónica `/socket.io/` que el proxy enruta al
+ * backend. En prod conectamos por el mismo origen (string vacío). En dev
+ * apuntamos al backend explícito.
+ */
+export const API_WS_URL: string = RESOLVED;
+
+/** @deprecated Usa `API_HTTP_URL` o `API_WS_URL` según el caso. */
+export const API_BASE_URL: string = API_HTTP_URL;
 
 export async function fetchSessionPublic(code: string): Promise<{
   exists: boolean;
@@ -41,7 +62,7 @@ export async function fetchSessionPublic(code: string): Promise<{
   category?: string;
 }> {
   const res = await fetch(
-    `${API_BASE_URL}/sessions/${encodeURIComponent(code)}`,
+    `${API_HTTP_URL}/sessions/${encodeURIComponent(code)}`,
     { headers: { Accept: 'application/json' } },
   );
   if (!res.ok) {

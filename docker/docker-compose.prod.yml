@@ -1,9 +1,21 @@
+# Compose para Dokploy:
+#  - Solo `proxy` (Caddy) se expone externamente — Dokploy le pone el dominio.
+#  - `api` y `web` quedan en la red interna; el navegador nunca los toca
+#    directamente: pasa todo por Caddy en el mismo origen.
+#  - `web` espera a que `api` arranque (depends_on con condición healthy)
+#    para no dar errores transitorios al primer request.
+#
+# Orden de build: docker compose v2 buildea en paralelo por defecto. Para
+# forzar serial (api primero) en Dokploy, configura el "Build Command":
+#     docker compose -f docker/docker-compose.prod.yml build api && \
+#     docker compose -f docker/docker-compose.prod.yml build web && \
+#     docker compose -f docker/docker-compose.prod.yml build proxy
+
 services:
   api:
     build:
       context: ..
       dockerfile: docker/Dockerfile.api
-    container_name: prod-api
     environment:
       NODE_ENV: production
       DB_HOST: ${DB_HOST}
@@ -13,34 +25,57 @@ services:
       DB_NAME: ${DB_NAME}
       REDIS_HOST: ${REDIS_HOST}
       REDIS_PORT: ${REDIS_PORT:-6379}
-    ports:
-      - "${API_PORT:-3000}:3000"
+      # En prod el navegador entra por el mismo origen vía Caddy, así que
+      # no necesitamos CORS abierto. Si por alguna razón quieres permitir
+      # otro dominio, defínelo aquí (lista separada por comas).
+      CORS_ORIGIN: ${CORS_ORIGIN:-}
+    expose:
+      - "3000"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/health/liveness"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
   web:
     build:
       context: ..
       dockerfile: docker/Dockerfile.web
       args:
-        PUBLIC_API_URL: ${PUBLIC_API_URL:-http://api:3000}
-    container_name: prod-web
+        # Mismo origen: el cliente Astro llamará a `/api/*` y socket.io
+        # se conectará al propio dominio. Caddy enruta al backend.
+        PUBLIC_API_URL: ""
     environment:
       NODE_ENV: production
-      PUBLIC_API_URL: ${PUBLIC_API_URL:-http://api:3000}
       HOST: 0.0.0.0
       PORT: 3000
-    ports:
-      - "${WEB_PORT:-3001}:3000"
+    expose:
+      - "3000"
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/"]
       interval: 30s
       timeout: 10s
       retries: 3
+
+  proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    expose:
+      - "80"
+    depends_on:
+      - web
+      - api
+
+volumes:
+  caddy_data:
+  caddy_config:

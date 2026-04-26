@@ -13,14 +13,16 @@ async function bootstrap() {
 
   // En desarrollo permitimos cualquier origen para poder jugar desde la LAN
   // (celulares de la familia conectándose por WiFi a la IP del host) sin
-  // pelearnos con CORS. En producción se respeta CORS_ORIGIN si está definido.
+  // pelearnos con CORS. En producción el navegador entra por el reverse
+  // proxy (mismo origen), así que CORS solo debería abrirse explícitamente
+  // vía CORS_ORIGIN si por alguna razón se sirve desde otro dominio.
   const isDev = process.env.NODE_ENV !== 'production';
-  const corsEnv = process.env.CORS_ORIGIN;
+  const corsEnv = process.env.CORS_ORIGIN?.trim();
   const corsOrigin: boolean | string[] = isDev
     ? true
     : corsEnv
-      ? corsEnv.split(',').map((o) => o.trim())
-      : true;
+      ? corsEnv.split(',').map((o) => o.trim()).filter(Boolean)
+      : false;
 
   app.enableCors({
     origin: corsOrigin,
@@ -28,6 +30,10 @@ async function bootstrap() {
   });
   if (isDev) {
     logger.log('CORS abierto (NODE_ENV=development)');
+  } else if (Array.isArray(corsOrigin) && corsOrigin.length > 0) {
+    logger.log(`CORS restringido a: ${corsOrigin.join(', ')}`);
+  } else {
+    logger.log('CORS cerrado (mismo origen vía reverse proxy)');
   }
 
   app.useGlobalPipes(
