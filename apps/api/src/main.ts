@@ -36,6 +36,16 @@ async function bootstrap() {
     logger.log('CORS cerrado (mismo origen vía reverse proxy)');
   }
 
+  // Prefijo global `/api` para todas las rutas REST. El cliente web ya
+  // llama a `/api/sessions`, `/api/categories`, etc. — Traefik enruta
+  // sin Strip Path y NestJS reconoce el prefijo nativamente.
+  // Excluimos los endpoints de health para que el healthcheck del
+  // container Docker (que apunta a `/health/liveness` en localhost)
+  // siga funcionando sin necesidad del prefijo.
+  app.setGlobalPrefix('api', {
+    exclude: ['/', '/health', '/health/liveness', '/health/readiness'],
+  });
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
