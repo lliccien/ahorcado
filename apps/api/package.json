@@ -18,7 +18,14 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "seed": "ts-node -r tsconfig-paths/register src/scripts/seed-words.ts"
+    "seed": "ts-node -P tsconfig.cli.json -r tsconfig-paths/register src/scripts/seed-words.ts",
+    "typeorm": "ts-node -P tsconfig.cli.json -r tsconfig-paths/register ./node_modules/typeorm/cli.js -d src/data-source.ts",
+    "migration:generate": "pnpm typeorm migration:generate",
+    "migration:create": "ts-node -P tsconfig.cli.json -r tsconfig-paths/register ./node_modules/typeorm/cli.js migration:create",
+    "migration:run": "pnpm typeorm migration:run",
+    "migration:revert": "pnpm typeorm migration:revert",
+    "migration:show": "pnpm typeorm migration:show",
+    "schema:drop": "pnpm typeorm schema:drop"
   },
   "dependencies": {
     "@ahorcado/shared": "workspace:*",

@@ -52,8 +52,7 @@ import {
 
 const sessionKey = (code: string) => `session:${code}`;
 const roundKey = (code: string, n: number) => `round:${code}:${n}`;
-const roundSecretKey = (code: string, n: number) =>
-  `round:${code}:${n}:secret`;
+const roundSecretKey = (code: string, n: number) => `round:${code}:${n}:secret`;
 const playerRoundKey = (code: string, n: number, playerId: string) =>
   `round:${code}:${n}:player:${playerId}`;
 const roundResolvedKey = (code: string, n: number) =>
@@ -722,6 +721,6 @@ export class GameService {
 
   // Eslint complacence: importamos varias utilidades para que el linter no las quite.
   // Estas funciones se usan en pruebas o en futuras fases.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   private _unusedExports = letterSlotCount;
 }

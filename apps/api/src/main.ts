@@ -21,7 +21,10 @@ async function bootstrap() {
   const corsOrigin: boolean | string[] = isDev
     ? true
     : corsEnv
-      ? corsEnv.split(',').map((o) => o.trim()).filter(Boolean)
+      ? corsEnv
+          .split(',')
+          .map((o) => o.trim())
+          .filter(Boolean)
       : false;
 
   app.enableCors({
@@ -67,7 +70,9 @@ async function bootstrap() {
   // Swagger Configuration
   const config = new DocumentBuilder()
     .setTitle('Ahorcado API')
-    .setDescription('API en tiempo real para el juego del ahorcado multijugador')
+    .setDescription(
+      'API en tiempo real para el juego del ahorcado multijugador',
+    )
     .setVersion('1.0')
     .addTag('App', 'Endpoints de salud y bienvenida')
     .addTag('Sessions', 'Creación y consulta de sesiones de juego')
@@ -95,7 +100,7 @@ bootstrap().catch((err) => {
   // Redis no responde, etc.) lo dejamos visible en stdout para que aparezca
   // en los logs del container y exitamos con código 1 para que Docker
   // reinicie el servicio en lugar de quedar "running pero sin servidor".
-  // eslint-disable-next-line no-console
+
   console.error('[Bootstrap] Fatal error:', err);
   process.exit(1);
 });

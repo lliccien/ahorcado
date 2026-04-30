@@ -13,10 +13,7 @@ export class GuessLetterDto {
   @Length(1, 1)
   @Transform(({ value }) =>
     typeof value === 'string'
-      ? value
-          .normalize('NFD')
-          .replace(/[̀-ͯ]/g, '')
-          .toLowerCase()
+      ? value.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
       : value,
   )
   @Matches(/^[a-zñ]$/, { message: 'letra inválida (solo a-z o ñ)' })

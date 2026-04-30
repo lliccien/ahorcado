@@ -2,11 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import {
-  Player,
-  SessionState,
-  SESSION_TTL_SECONDS,
-} from '@ahorcado/shared';
+import { Player, SessionState, SESSION_TTL_SECONDS } from '@ahorcado/shared';
 
 import { RedisService } from '../redis/redis.service';
 import { GameSessionEntity } from './entities/game-session.entity';
@@ -91,11 +87,7 @@ export class SessionsRepository {
   async upsertPlayer(code: string, player: Player): Promise<void> {
     const client = this.redis.getClient();
     const exists = await client.hexists(playersKey(code), player.id);
-    await client.hset(
-      playersKey(code),
-      player.id,
-      JSON.stringify(player),
-    );
+    await client.hset(playersKey(code), player.id, JSON.stringify(player));
     if (!exists) {
       await client.rpush(playersOrderKey(code), player.id);
     }
@@ -104,9 +96,7 @@ export class SessionsRepository {
   }
 
   async getPlayer(code: string, playerId: string): Promise<Player | null> {
-    const raw = await this.redis
-      .getClient()
-      .hget(playersKey(code), playerId);
+    const raw = await this.redis.getClient().hget(playersKey(code), playerId);
     if (!raw) return null;
     try {
       return JSON.parse(raw) as Player;
@@ -132,10 +122,7 @@ export class SessionsRepository {
     return players;
   }
 
-  async findPlayerByName(
-    code: string,
-    name: string,
-  ): Promise<Player | null> {
+  async findPlayerByName(code: string, name: string): Promise<Player | null> {
     const players = await this.listPlayers(code);
     const normalized = name.trim().toLowerCase();
     return (

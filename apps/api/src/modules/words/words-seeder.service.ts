@@ -1,10 +1,8 @@
 import { existsSync, readFileSync } from 'node:fs';
-import { readdir } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource } from 'typeorm';
 
 import { CATEGORY_SLUGS, DEFAULT_LOCALE } from '@ahorcado/shared';
 
@@ -26,22 +24,23 @@ const META: Record<string, { name: string; icon: string }> = {
 };
 
 /**
- * Carga las palabras del juego en la base de datos al arrancar la API si
- * detecta que la tabla está vacía. Útil en despliegues nuevos (Dokploy /
- * Docker) donde TypeORM `synchronize: true` crea las tablas pero no
- * popula datos. Es idempotente: si ya hay categorías para el locale, no
- * hace nada.
+ * Sincroniza la DB con los JSON de seeds en cada arranque (UPSERT + prune):
+ *   - Inserta categorías nuevas y actualiza name/icon de existentes.
+ *   - Inserta palabras que están en el JSON y no en la DB.
+ *   - Borra palabras que están en la DB y ya no están en el JSON.
+ *   - Borra categorías cuyo slug ya no figura en CATEGORY_SLUGS.
+ *
+ * Si los JSON no cambiaron, no escribe nada (cero IO en disco). Toda la
+ * sincronización corre en una sola transacción para que un fallo no deje la
+ * DB en un estado inconsistente.
+ *
+ * Deshabilitable con WORDS_SEED_AUTO=false.
  */
 @Injectable()
 export class WordsSeederService implements OnModuleInit {
   private readonly logger = new Logger(WordsSeederService.name);
 
-  constructor(
-    @InjectRepository(CategoryEntity)
-    private readonly categoryRepo: Repository<CategoryEntity>,
-    @InjectRepository(WordEntity)
-    private readonly wordRepo: Repository<WordEntity>,
-  ) {}
+  constructor(private readonly dataSource: DataSource) {}
 
   async onModuleInit(): Promise<void> {
     if (process.env.WORDS_SEED_AUTO === 'false') {
@@ -51,14 +50,6 @@ export class WordsSeederService implements OnModuleInit {
 
     const locale = process.env.WORDS_SEED_LOCALE || DEFAULT_LOCALE;
 
-    const existing = await this.categoryRepo.count({ where: { locale } });
-    if (existing > 0) {
-      this.logger.log(
-        `Skip seed: ya hay ${existing} categorías para locale=${locale}`,
-      );
-      return;
-    }
-
     const seedsDir = this.resolveSeedsDir(locale);
     if (!seedsDir) {
       this.logger.warn(
@@ -67,8 +58,7 @@ export class WordsSeederService implements OnModuleInit {
       return;
     }
 
-    this.logger.log(`Cargando palabras desde ${seedsDir} (locale=${locale})`);
-    await this.loadSeeds(seedsDir, locale);
+    await this.syncSeeds(seedsDir, locale);
   }
 
   private resolveSeedsDir(locale: string): string | null {
@@ -86,79 +76,158 @@ export class WordsSeederService implements OnModuleInit {
     return null;
   }
 
-  private async loadSeeds(seedsDir: string, locale: string): Promise<void> {
-    const files = (await readdir(seedsDir)).filter((f) => f.endsWith('.json'));
-    let totalInserted = 0;
+  private async syncSeeds(seedsDir: string, locale: string): Promise<void> {
+    let inserted = 0;
+    let deletedWords = 0;
+    let categoriesCreated = 0;
+    let categoriesUpdated = 0;
+    let categoriesDeleted = 0;
+    const perCategoryLogs: string[] = [];
 
-    for (const slug of CATEGORY_SLUGS) {
-      const file = resolve(seedsDir, `${slug}.json`);
-      if (!files.includes(`${slug}.json`)) {
-        this.logger.warn(`  ⚠ ${slug}: archivo no encontrado, salto`);
-        continue;
-      }
+    await this.dataSource.transaction(async (manager) => {
+      const categoryRepo = manager.getRepository(CategoryEntity);
+      const wordRepo = manager.getRepository(WordEntity);
 
-      const list = JSON.parse(
-        readFileSync(file, 'utf8'),
-      ) as unknown;
-      if (!Array.isArray(list)) {
-        this.logger.warn(`  ⚠ ${slug}: contenido no es un array`);
-        continue;
-      }
+      for (const slug of CATEGORY_SLUGS) {
+        const file = resolve(seedsDir, `${slug}.json`);
+        if (!existsSync(file)) {
+          this.logger.warn(`  ⚠ ${slug}: archivo no encontrado, salto`);
+          continue;
+        }
 
-      const meta = META[slug] ?? { name: slug, icon: '📚' };
-      const category = await this.categoryRepo.save(
-        this.categoryRepo.create({
-          slug,
-          name: meta.name,
-          icon: meta.icon,
-          locale,
-          wordCount: 0,
-        }),
-      );
+        const list = JSON.parse(readFileSync(file, 'utf8')) as unknown;
+        if (!Array.isArray(list)) {
+          this.logger.warn(`  ⚠ ${slug}: contenido no es un array`);
+          continue;
+        }
 
-      const seen = new Set<string>();
-      const rows: WordEntity[] = [];
-      for (const display of list) {
-        if (typeof display !== 'string') continue;
-        const trimmed = display.trim();
-        if (!trimmed) continue;
-        const text = normalizeWord(trimmed);
-        if (!text || seen.has(text)) continue;
-        seen.add(text);
-        rows.push(
-          this.wordRepo.create({
+        // Categoría: crear o actualizar metadata si cambió.
+        const meta = META[slug] ?? { name: slug, icon: '📚' };
+        let category = await categoryRepo.findOne({ where: { slug, locale } });
+        if (!category) {
+          category = await categoryRepo.save(
+            categoryRepo.create({
+              slug,
+              name: meta.name,
+              icon: meta.icon,
+              locale,
+              wordCount: 0,
+            }),
+          );
+          categoriesCreated++;
+        } else if (category.name !== meta.name || category.icon !== meta.icon) {
+          category.name = meta.name;
+          category.icon = meta.icon;
+          await categoryRepo.save(category);
+          categoriesUpdated++;
+        }
+
+        // Construir conjunto deseado de palabras desde el JSON.
+        const seen = new Set<string>();
+        const rows: WordEntity[] = [];
+        for (const display of list) {
+          if (typeof display !== 'string') continue;
+          const trimmed = display.trim();
+          if (!trimmed) continue;
+          const text = normalizeWord(trimmed);
+          if (!text || seen.has(text)) continue;
+          seen.add(text);
+          rows.push(
+            wordRepo.create({
+              categoryId: category.id,
+              text,
+              display: trimmed,
+              difficulty: inferDifficulty(text),
+              length: text.replace(/\s/g, '').length,
+              locale,
+            }),
+          );
+        }
+
+        // INSERT con orIgnore por la UNIQUE (categoryId, text, locale): las
+        // palabras nuevas entran, las que ya existían se saltan.
+        let cInserted = 0;
+        const CHUNK = 200;
+        for (let i = 0; i < rows.length; i += CHUNK) {
+          const batch = rows.slice(i, i + CHUNK);
+          const result = await wordRepo
+            .createQueryBuilder()
+            .insert()
+            .into(WordEntity)
+            .values(batch)
+            .orIgnore()
+            .execute();
+          cInserted += result.identifiers.filter(Boolean).length;
+        }
+        inserted += cInserted;
+
+        // Pruning: eliminar de la DB las palabras que ya no están en el JSON.
+        let cDeleted = 0;
+        const desiredTexts = [...seen];
+        if (desiredTexts.length === 0) {
+          const result = await wordRepo.delete({
             categoryId: category.id,
-            text,
-            display: trimmed,
-            difficulty: inferDifficulty(text),
-            length: text.replace(/\s/g, '').length,
             locale,
-          }),
-        );
+          });
+          cDeleted = result.affected ?? 0;
+        } else {
+          const result = await wordRepo
+            .createQueryBuilder()
+            .delete()
+            .where('"categoryId" = :categoryId', { categoryId: category.id })
+            .andWhere('locale = :locale', { locale })
+            .andWhere('text NOT IN (:...desiredTexts)', { desiredTexts })
+            .execute();
+          cDeleted = result.affected ?? 0;
+        }
+        deletedWords += cDeleted;
+
+        // Mantener wordCount consistente solo si cambió.
+        const total = await wordRepo.count({
+          where: { categoryId: category.id, locale },
+        });
+        if (category.wordCount !== total) {
+          category.wordCount = total;
+          await categoryRepo.save(category);
+        }
+
+        if (cInserted > 0 || cDeleted > 0) {
+          perCategoryLogs.push(
+            `  ✓ ${slug.padEnd(18)} +${cInserted} -${cDeleted}  total=${total}`,
+          );
+        }
       }
 
-      let inserted = 0;
-      const CHUNK = 200;
-      for (let i = 0; i < rows.length; i += CHUNK) {
-        const batch = rows.slice(i, i + CHUNK);
-        const result = await this.wordRepo
-          .createQueryBuilder()
-          .insert()
-          .into(WordEntity)
-          .values(batch)
-          .orIgnore()
-          .execute();
-        inserted += result.identifiers.filter(Boolean).length;
+      // Pruning de categorías: las que tengan slug fuera de CATEGORY_SLUGS
+      // para este locale se eliminan. Las palabras se borran por CASCADE.
+      const orphans = await categoryRepo
+        .createQueryBuilder('c')
+        .where('c.locale = :locale', { locale })
+        .andWhere('c.slug NOT IN (:...slugs)', {
+          slugs: [...CATEGORY_SLUGS],
+        })
+        .getMany();
+      if (orphans.length > 0) {
+        await categoryRepo.remove(orphans);
+        categoriesDeleted = orphans.length;
       }
+    });
 
-      category.wordCount = inserted;
-      await this.categoryRepo.save(category);
-      totalInserted += inserted;
-      this.logger.log(
-        `  ✓ ${slug.padEnd(18)} → ${inserted} palabras`,
-      );
+    const sinCambios =
+      inserted === 0 &&
+      deletedWords === 0 &&
+      categoriesCreated === 0 &&
+      categoriesUpdated === 0 &&
+      categoriesDeleted === 0;
+
+    if (sinCambios) {
+      this.logger.log(`Seed sincronizado sin cambios (locale=${locale})`);
+      return;
     }
 
-    this.logger.log(`Seed completado: ${totalInserted} palabras insertadas.`);
+    for (const line of perCategoryLogs) this.logger.log(line);
+    this.logger.log(
+      `Seed sincronizado (locale=${locale}): palabras +${inserted} -${deletedWords}, categorías +${categoriesCreated} ~${categoriesUpdated} -${categoriesDeleted}`,
+    );
   }
 }

@@ -88,12 +88,10 @@ export class RealtimeGateway
           players: result.players,
         });
         if (result.hostChanged) {
-          this.server
-            .to(roomName(data.sessionCode))
-            .emit('host:changed', {
-              hostId: result.hostChanged.newHostId,
-              players: result.players,
-            });
+          this.server.to(roomName(data.sessionCode)).emit('host:changed', {
+            hostId: result.hostChanged.newHostId,
+            players: result.players,
+          });
         }
       }
     }
@@ -190,12 +188,10 @@ export class RealtimeGateway
           players: result.players,
         });
         if (result.hostChanged) {
-          this.server
-            .to(roomName(data.sessionCode))
-            .emit('host:changed', {
-              hostId: result.hostChanged.newHostId,
-              players: result.players,
-            });
+          this.server.to(roomName(data.sessionCode)).emit('host:changed', {
+            hostId: result.hostChanged.newHostId,
+            players: result.players,
+          });
         }
       }
       await client.leave(roomName(data.sessionCode));

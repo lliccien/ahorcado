@@ -54,9 +54,13 @@ export class LeaderboardService {
     private readonly resultRepo: Repository<RoundResultEntity>,
   ) {}
 
-  async getByCode(code: string): Promise<LeaderboardResponse | { exists: false }> {
+  async getByCode(
+    code: string,
+  ): Promise<LeaderboardResponse | { exists: false }> {
     const cleanCode = code.trim().toUpperCase();
-    const session = await this.sessionRepo.findOne({ where: { code: cleanCode } });
+    const session = await this.sessionRepo.findOne({
+      where: { code: cleanCode },
+    });
     if (!session) return { exists: false };
 
     const [players, rounds] = await Promise.all([
@@ -72,7 +76,9 @@ export class LeaderboardService {
 
     const roundIds = rounds.map((r) => r.id);
     const results = roundIds.length
-      ? await this.resultRepo.find({ where: roundIds.map((id) => ({ roundId: id })) })
+      ? await this.resultRepo.find({
+          where: roundIds.map((id) => ({ roundId: id })),
+        })
       : [];
 
     const playerMap = new Map(players.map((p) => [p.id, p]));
@@ -138,7 +144,7 @@ export class LeaderboardService {
       categorySlug: r.categorySlug,
       winnerPlayerId: r.winnerPlayerId,
       winnerName: r.winnerPlayerId
-        ? playerMap.get(r.winnerPlayerId)?.name ?? null
+        ? (playerMap.get(r.winnerPlayerId)?.name ?? null)
         : null,
       startedAt: r.startedAt.toISOString(),
       endedAt: r.endedAt ? r.endedAt.toISOString() : null,

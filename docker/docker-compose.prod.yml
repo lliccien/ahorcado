@@ -17,15 +17,19 @@
 # Variables que debes definir en la pestaña Environment de Dokploy:
 #   DB_PASSWORD=<contraseña que quieras>
 #
-# Primer deploy (DB vacía): añade temporalmente
-#   DB_SYNCHRONIZE=true
-# para que TypeORM cree el schema. Una vez creado, vuelve a desplegar sin
-# esa variable (o ponla "false") para que el schema no se modifique solo
-# en arranques posteriores.
+# Schema y datos iniciales:
+#   - Las migraciones de TypeORM corren automáticamente al arrancar la API
+#     (synchronize=false, migrationsRun=true en NODE_ENV=production).
+#     No hay que tocar nada en el primer deploy: la API crea las tablas
+#     aplicando las migraciones versionadas en `apps/api/src/migrations/`.
+#   - Los seeders de categorías/palabras corren también al arrancar (vía
+#     WordsSeederService) solo si la tabla `category` está vacía para el
+#     locale configurado, así que son idempotentes. Para deshabilitarlos
+#     en un deploy concreto, setear WORDS_SEED_AUTO=false.
 #
 # Opcionales (con defaults sensatos):
 #   DB_USERNAME, DB_NAME, DB_HOST, DB_PORT, REDIS_HOST, REDIS_PORT,
-#   API_PORT, WEB_PORT, NODE_ENV, CORS_ORIGIN, DB_SYNCHRONIZE,
+#   API_PORT, WEB_PORT, NODE_ENV, CORS_ORIGIN,
 #   WORDS_SEED_AUTO, WORDS_SEED_LOCALE
 
 services:
@@ -70,13 +74,12 @@ services:
       DB_USERNAME: ${DB_USERNAME:-ahorcado}
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD requerido}
       DB_NAME: ${DB_NAME:-ahorcado}
-      # `synchronize` de TypeORM:
-      #   - Vacío en prod → OFF por defecto (seguro).
-      #   - Pon "true" en el primer deploy para que TypeORM cree las tablas.
-      #   - Una vez creadas, quítalo o ponlo "false".
-      DB_SYNCHRONIZE: ${DB_SYNCHRONIZE:-}
       REDIS_HOST: ${REDIS_HOST:-redis}
       REDIS_PORT: ${REDIS_PORT:-6379}
+      # Auto-seed de categorías/palabras al arrancar (idempotente).
+      # Setear "false" para omitir.
+      WORDS_SEED_AUTO: ${WORDS_SEED_AUTO:-true}
+      WORDS_SEED_LOCALE: ${WORDS_SEED_LOCALE:-es-419}
       # En prod el navegador entra por el mismo dominio vía Traefik,
       # así que CORS no es necesario. Solo defínelo si vas a exponer
       # el API a otro origen distinto (lista separada por comas).

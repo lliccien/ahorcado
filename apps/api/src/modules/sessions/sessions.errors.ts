@@ -55,11 +55,7 @@ export const errNotHost = () =>
   );
 
 export const errInternal = (msg: string) =>
-  new DomainError(
-    ErrorCode.INTERNAL,
-    msg,
-    HttpStatus.INTERNAL_SERVER_ERROR,
-  );
+  new DomainError(ErrorCode.INTERNAL, msg, HttpStatus.INTERNAL_SERVER_ERROR);
 
 export const errCannotCloseWithPlayers = () =>
   new DomainError(
