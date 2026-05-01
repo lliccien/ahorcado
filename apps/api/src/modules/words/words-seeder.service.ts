@@ -21,6 +21,8 @@ const META: Record<string, { name: string; icon: string }> = {
   'objetos-hogar': { name: 'Objetos del hogar', icon: '🛋️' },
   naturaleza: { name: 'Naturaleza', icon: '🌳' },
   musica: { name: 'Música', icon: '🎵' },
+  ciudades: { name: 'Ciudades', icon: '🏙️' },
+  'cultura-general': { name: 'Cultura general', icon: '🧠' },
 };
 
 /**

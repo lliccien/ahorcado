@@ -43,6 +43,8 @@ export const CATEGORY_SLUGS = [
   'objetos-hogar',
   'naturaleza',
   'musica',
+  'ciudades',
+  'cultura-general',
 ] as const;
 
 export type CategorySlug = (typeof CATEGORY_SLUGS)[number];

@@ -17,6 +17,8 @@ const META: Record<string, { label: string; icon: string }> = {
   'objetos-hogar': { label: 'Objetos del hogar', icon: '🛋️' },
   naturaleza: { label: 'Naturaleza', icon: '🌳' },
   musica: { label: 'Música', icon: '🎵' },
+  ciudades: { label: 'Ciudades', icon: '🏙️' },
+  'cultura-general': { label: 'Cultura general', icon: '🧠' },
 };
 
 export const CATEGORY_OPTIONS: CategoryOption[] = [
