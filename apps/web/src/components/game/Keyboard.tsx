@@ -42,9 +42,12 @@ export default function Keyboard({
   }, [guessedSet, onLetter, disabled]);
 
   return (
-    <div className="mx-auto flex w-full flex-col items-center gap-1.5 lg:max-w-xl">
+    <div className="mx-auto flex w-full flex-col items-center gap-1 sm:gap-1.5 lg:max-w-xl">
       {ROWS.map((row, ri) => (
-        <div key={ri} className="flex w-full justify-center gap-1.5">
+        <div
+          key={ri}
+          className="flex w-full justify-center gap-1 sm:gap-1.5"
+        >
           {row.map((letter) => {
             const tried = guessedSet.has(letter);
             const correct = tried && correctSet.has(letter);
@@ -58,7 +61,7 @@ export default function Keyboard({
                 aria-pressed={tried}
                 aria-label={`Letra ${letter.toUpperCase()}${correct ? ' (acierto)' : wrong ? ' (fallo)' : ''}`}
                 data-testid={`keyboard-letter-${letter}`}
-                className={`flex h-11 min-w-[2.25rem] flex-1 items-center justify-center rounded-md font-mono text-base font-semibold uppercase transition sm:h-12 sm:min-w-[2.5rem] sm:text-lg md:h-14 md:text-xl ${
+                className={`flex h-9 min-w-0 flex-1 basis-0 items-center justify-center rounded-md font-mono text-sm font-semibold uppercase transition sm:h-12 sm:min-w-[2.5rem] sm:text-lg md:h-14 md:text-xl ${
                   correct
                     ? 'bg-emerald-500 text-white'
                     : wrong

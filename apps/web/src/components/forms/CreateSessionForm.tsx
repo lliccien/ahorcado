@@ -5,11 +5,25 @@ import {
   MIN_ROUNDS,
   PLAYER_NAME_MAX,
   PLAYER_NAME_MIN,
+  RANDOM_CATEGORY,
+  ROUNDS_MARK_INTERVAL,
+  ROUNDS_STEP,
 } from '@ahorcado/shared';
 
 import { CATEGORY_OPTIONS } from '../../lib/categories';
 import { API_HTTP_URL } from '../../lib/api';
 import { getLastName, setLastName, setPlayerId } from '../../lib/storage';
+
+// Marcas visuales del slider: extremos (1, 50) + cada múltiplo del
+// intervalo (5, 10, 15, ...). Se usan tanto para el `<datalist>` como
+// para los labels posicionados proporcionalmente.
+const ROUND_MARKS: number[] = (() => {
+  const marks = new Set<number>([MIN_ROUNDS, MAX_ROUNDS]);
+  for (let v = ROUNDS_MARK_INTERVAL; v < MAX_ROUNDS; v += ROUNDS_MARK_INTERVAL) {
+    if (v > MIN_ROUNDS) marks.add(v);
+  }
+  return [...marks].sort((a, b) => a - b);
+})();
 
 export default function CreateSessionForm() {
   const [hostName, setHostName] = useState(() => getLastName());
@@ -93,22 +107,46 @@ export default function CreateSessionForm() {
           type="range"
           min={MIN_ROUNDS}
           max={MAX_ROUNDS}
+          step={ROUNDS_STEP}
           value={totalRounds}
           onChange={(e) => setTotalRounds(Number(e.target.value))}
+          list="rounds-marks"
           className="accent-amber-400"
           data-testid="total-rounds-input"
         />
-        <div className="flex justify-between text-xs text-slate-400">
-          <span>{MIN_ROUNDS}</span>
-          <span>{MAX_ROUNDS}</span>
+        <datalist id="rounds-marks">
+          {ROUND_MARKS.map((v) => (
+            <option key={v} value={v} label={String(v)} />
+          ))}
+        </datalist>
+        <div
+          className="relative h-4 text-[10px] tabular-nums text-slate-400 sm:text-xs"
+          aria-hidden
+        >
+          {ROUND_MARKS.map((v) => {
+            const pct =
+              ((v - MIN_ROUNDS) / (MAX_ROUNDS - MIN_ROUNDS)) * 100;
+            return (
+              <span
+                key={v}
+                className={`absolute -translate-x-1/2 ${
+                  v === totalRounds ? 'font-semibold text-amber-300' : ''
+                }`}
+                style={{ left: `${pct}%` }}
+              >
+                {v}
+              </span>
+            );
+          })}
         </div>
       </label>
 
       <fieldset className="flex flex-col gap-2 text-sm font-medium text-slate-200">
-        <legend>Categoría</legend>
+        <legend>Categorías</legend>
         <div className="grid grid-cols-2 gap-2">
           {CATEGORY_OPTIONS.map((opt) => {
             const selected = category === opt.slug;
+            const isRandom = opt.slug === RANDOM_CATEGORY;
             return (
               <button
                 type="button"
@@ -116,7 +154,9 @@ export default function CreateSessionForm() {
                 onClick={() => setCategory(opt.slug)}
                 aria-pressed={selected}
                 data-testid={`category-${opt.slug}`}
-                className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm transition ${
+                className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition ${
+                  isRandom ? 'col-span-2 justify-center' : 'text-left'
+                } ${
                   selected
                     ? 'border-amber-400 bg-amber-400/10 text-amber-200'
                     : 'border-white/10 bg-slate-900/40 text-slate-200 hover:border-white/30'

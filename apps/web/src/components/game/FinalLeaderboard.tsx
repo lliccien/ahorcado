@@ -1,5 +1,7 @@
 import type { GameFinishedPayload, Player } from '@ahorcado/shared';
 
+import { clearPlayerId } from '../../lib/storage';
+
 interface Props {
   payload: GameFinishedPayload;
   players: Player[];
@@ -11,6 +13,13 @@ export default function FinalLeaderboard({
   players,
   myPlayerId,
 }: Props) {
+  function exitToHome() {
+    clearPlayerId(payload.sessionCode);
+    if (typeof window !== 'undefined') {
+      window.location.href = '/';
+    }
+  }
+
   const sorted = [...payload.leaderboard].sort((a, b) => b.wins - a.wins);
   const [first] = sorted;
   const champion =
@@ -68,13 +77,14 @@ export default function FinalLeaderboard({
         ))}
       </ol>
 
-      <a
-        href="/host"
+      <button
+        type="button"
+        onClick={exitToHome}
         className="rounded-2xl bg-amber-400 px-5 py-4 text-center text-lg font-semibold text-slate-950 shadow-md transition hover:bg-amber-300"
-        data-testid="final-leaderboard-new-game"
+        data-testid="final-leaderboard-exit"
       >
-        Nueva partida
-      </a>
+        Salir
+      </button>
     </section>
   );
 }

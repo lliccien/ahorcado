@@ -1,6 +1,10 @@
 export const LIVES_PER_ROUND = 8;
-export const MAX_ROUNDS = 100;
+export const MAX_ROUNDS = 50;
 export const MIN_ROUNDS = 1;
+/** Paso real del slider (cualquier número del 1 al 50). */
+export const ROUNDS_STEP = 1;
+/** Intervalo de las marcas visuales del slider (cada 5 rondas). */
+export const ROUNDS_MARK_INTERVAL = 5;
 export const MIN_PLAYERS_TO_START = 2;
 export const CODE_LENGTH = 6;
 export const ROUND_END_DELAY_MS = 5000;

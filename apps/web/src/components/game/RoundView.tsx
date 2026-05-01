@@ -68,9 +68,9 @@ export default function RoundView({
         totalRounds={session.totalRounds}
       />
 
-      <div className="mx-auto flex w-full max-w-md flex-col gap-4 px-3 pb-4 md:max-w-2xl lg:max-w-5xl">
+      <div className="mx-auto flex w-full max-w-md flex-col gap-3 px-2 pb-4 sm:gap-4 sm:px-3 md:max-w-2xl lg:max-w-5xl landscape:max-lg:gap-2">
         <header
-          className="flex items-center justify-between gap-2 text-xs uppercase tracking-widest text-slate-400"
+          className="flex items-center justify-between gap-2 text-[10px] uppercase tracking-widest text-slate-400 sm:text-xs"
           data-testid="round-header"
         >
           <button
@@ -100,8 +100,8 @@ export default function RoundView({
           </div>
         </header>
 
-        <div className="flex flex-col gap-4 lg:grid lg:grid-cols-2 lg:gap-8">
-          <div className="flex flex-col items-center gap-4">
+        <div className="flex flex-col gap-4 lg:grid lg:grid-cols-2 lg:gap-8 landscape:grid landscape:grid-cols-2 landscape:gap-4 landscape:max-lg:gap-3">
+          <div className="flex flex-col items-center gap-4 landscape:max-lg:gap-2">
             <HangmanCanvas livesRemaining={myState.livesRemaining} />
             <OpponentsBar
               players={players}
@@ -111,7 +111,7 @@ export default function RoundView({
             />
           </div>
 
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-3 sm:gap-4 landscape:max-lg:gap-2">
             <div data-testid="round-word-display">
               <WordDisplay
                 maskedView={myState.maskedView}
