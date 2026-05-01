@@ -41,6 +41,8 @@ coverage/
 playwright-report/
 test-results/
 playwright/.cache/
+tests/e2e/tests/e2e/screenshots/*
+tests/e2e/screenshots/*
 
 # Debug & Logs
 npm-debug.log*

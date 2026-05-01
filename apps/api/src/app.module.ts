@@ -13,21 +13,19 @@ import { LeaderboardModule } from './modules/leaderboard/leaderboard.module';
 import { SessionsModule } from './modules/sessions/sessions.module';
 import { WordsModule } from './modules/words/words.module';
 
-// `synchronize` modifica el schema en cada arranque al detectar diferencias
-// con las entities. Útil en dev para iterar rápido pero peligroso en prod
-// (puede borrar columnas/tablas si las entities cambian de nombre).
-//   - dev: ON por default.
-//   - prod: OFF por default.
-//   - Override explícito con DB_SYNCHRONIZE=true|false (suele setearse en
-//     true SOLO en el primer deploy de prod para crear el schema y luego
-//     se quita).
-const isDev = process.env.NODE_ENV !== 'production';
-const syncEnv = process.env.DB_SYNCHRONIZE?.trim().toLowerCase();
-const synchronize =
-  syncEnv === 'true' ? true : syncEnv === 'false' ? false : isDev;
+// Política del schema:
+//   - dev (NODE_ENV != 'production'): synchronize ON, migrationsRun OFF.
+//     TypeORM ajusta el schema desde las entities al arrancar para iterar
+//     rápido. Las migraciones se generan a demanda con `pnpm migration:generate`.
+//   - prod (NODE_ENV == 'production'): synchronize OFF, migrationsRun ON.
+//     El schema lo gestionan exclusivamente las migraciones versionadas en
+//     `src/migrations/` y se aplican automáticamente al arrancar la API.
+const isProd = process.env.NODE_ENV === 'production';
+const synchronize = !isProd;
+const migrationsRun = isProd;
 
 new Logger('AppModule').log(
-  `TypeORM synchronize=${synchronize} (NODE_ENV=${process.env.NODE_ENV ?? 'undefined'}, DB_SYNCHRONIZE=${process.env.DB_SYNCHRONIZE ?? 'unset'})`,
+  `TypeORM synchronize=${synchronize} migrationsRun=${migrationsRun} (NODE_ENV=${process.env.NODE_ENV ?? 'undefined'})`,
 );
 
 @Module({
@@ -46,6 +44,11 @@ new Logger('AppModule').log(
       database: process.env.DB_NAME,
       autoLoadEntities: true,
       synchronize,
+      migrationsRun,
+      // En runtime, `__dirname` resuelve a `dist/`, así que cargamos los
+      // archivos `.js` compilados. El glob `.{ts,js}` permite que también
+      // funcione bajo `nest start` (que ejecuta TS) sin cambiar la config.
+      migrations: [path.join(__dirname, 'migrations', '*.{ts,js}')],
       // Si Postgres tarda en estar listo (típico al levantar el stack
       // entero), reintentamos la conexión durante ~60s antes de morir.
       retryAttempts: 20,

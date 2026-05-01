@@ -128,6 +128,10 @@ export default defineConfig({
   ],
 
   vite: {
+    // El `.env` vive en la raíz del monorepo (compartido con la API).
+    // Por default Vite buscaría en `apps/web/`, así que lo apuntamos a la
+    // raíz para que `import.meta.env.PUBLIC_*` se inyecte correctamente.
+    envDir: '../../',
     plugins: [tailwindcss()],
     ssr: {
       noExternal: ['@ahorcado/shared']

@@ -30,7 +30,10 @@ export class RedisIoAdapter extends IoAdapter {
     const origin: boolean | string[] = isDev
       ? true
       : corsEnv
-        ? corsEnv.split(',').map((o) => o.trim()).filter(Boolean)
+        ? corsEnv
+            .split(',')
+            .map((o) => o.trim())
+            .filter(Boolean)
         : false;
 
     const server = super.createIOServer(port, {

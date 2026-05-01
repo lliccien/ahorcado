@@ -36,18 +36,21 @@ const RESOLVED = resolveBaseUrl(String(RAW_BASE));
 /**
  * URL base para las llamadas REST.
  *
- * - En dev (`PUBLIC_API_URL=http://localhost:3000`) apunta directo al backend.
- * - En prod (sin `PUBLIC_API_URL`) usamos `/api` y dejamos que el reverse
- *   proxy (Caddy) reenvíe al backend bajo el mismo origen, sin CORS.
+ * El backend expone un global prefix `/api`, así que la base HTTP siempre
+ * termina en `/api`. En dev (`PUBLIC_API_URL=http://localhost:3000`) eso
+ * resulta en `http://localhost:3000/api`. En prod (sin `PUBLIC_API_URL`)
+ * resulta en `/api` y dejamos que el reverse proxy (Traefik/Caddy)
+ * reenvíe al backend bajo el mismo origen, sin CORS.
  */
-export const API_HTTP_URL: string = RESOLVED || '/api';
+export const API_HTTP_URL: string = RESOLVED ? `${RESOLVED}/api` : '/api';
 
 /**
  * URL base para socket.io.
  *
- * socket.io tiene una ruta canónica `/socket.io/` que el proxy enruta al
- * backend. En prod conectamos por el mismo origen (string vacío). En dev
- * apuntamos al backend explícito.
+ * socket.io usa su propia ruta canónica `/socket.io/` (NO está bajo `/api`)
+ * y consume el namespace concatenado a la URL base, así que aquí pasamos
+ * solo el origen. En prod queda string vacío y socket.io se conecta al
+ * mismo origen que sirve el frontend.
  */
 export const API_WS_URL: string = RESOLVED;
 

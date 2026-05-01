@@ -143,7 +143,11 @@ export class SessionsService {
   } | null> {
     const state = await this.repo.getSessionState(code);
     if (!state) return null;
-    const player = await this.repo.setPlayerConnected(code, playerId, connected);
+    const player = await this.repo.setPlayerConnected(
+      code,
+      playerId,
+      connected,
+    );
     if (!player) return null;
     let players = await this.repo.listPlayers(code);
 

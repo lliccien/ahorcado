@@ -14,7 +14,11 @@ import { CategoryEntity } from './category.entity';
 
 @Entity({ name: 'word' })
 @Unique('uq_word_category_text_locale', ['categoryId', 'text', 'locale'])
-@Index('idx_word_category_locale_difficulty', ['categoryId', 'locale', 'difficulty'])
+@Index('idx_word_category_locale_difficulty', [
+  'categoryId',
+  'locale',
+  'difficulty',
+])
 export class WordEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;

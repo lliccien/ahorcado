@@ -1,40 +1,19 @@
 import 'reflect-metadata';
 import { dirname, resolve } from 'node:path';
 import { readFile, readdir } from 'node:fs/promises';
-import { existsSync, readFileSync } from 'node:fs';
-import { DataSource } from 'typeorm';
+import { existsSync } from 'node:fs';
 
 import { CATEGORY_SLUGS, DEFAULT_LOCALE } from '@ahorcado/shared';
 
+import AppDataSource from '../data-source';
 import { CategoryEntity } from '../modules/words/entities/category.entity';
 import { WordEntity } from '../modules/words/entities/word.entity';
-import { GameSessionEntity } from '../modules/sessions/entities/game-session.entity';
-import { PlayerEntity } from '../modules/sessions/entities/player.entity';
 import {
   inferDifficulty,
   normalizeWord,
 } from '../modules/words/word-normalize';
 
 const here = dirname(__filename);
-
-const REPO_ROOT = resolve(here, '..', '..', '..', '..');
-
-function loadDotenv() {
-  const candidate = resolve(REPO_ROOT, '.env');
-  if (!existsSync(candidate)) return;
-  const raw = readFileSync(candidate, 'utf8');
-  for (const line of raw.split(/\r?\n/)) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-    const eq = trimmed.indexOf('=');
-    if (eq <= 0) continue;
-    const key = trimmed.slice(0, eq).trim();
-    const value = trimmed.slice(eq + 1).trim().replace(/^"|"$/g, '');
-    if (!(key in process.env)) {
-      process.env[key] = value;
-    }
-  }
-}
 
 const META: Record<string, { name: string; icon: string }> = {
   animales: { name: 'Animales', icon: '🐾' },
@@ -47,30 +26,20 @@ const META: Record<string, { name: string; icon: string }> = {
   'objetos-hogar': { name: 'Objetos del hogar', icon: '🛋️' },
   naturaleza: { name: 'Naturaleza', icon: '🌳' },
   musica: { name: 'Música', icon: '🎵' },
+  ciudades: { name: 'Ciudades', icon: '🏙️' },
+  'cultura-general': { name: 'Cultura general', icon: '🧠' },
 };
 
 async function main() {
-  loadDotenv();
-
   const locale = process.env.WORDS_SEED_LOCALE || DEFAULT_LOCALE;
 
-  const ds = new DataSource({
-    type: 'postgres',
-    host: process.env.DB_HOST ?? 'localhost',
-    port: parseInt(process.env.DB_PORT ?? '5432', 10),
-    username: process.env.DB_USERNAME,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    entities: [CategoryEntity, WordEntity, GameSessionEntity, PlayerEntity],
-    synchronize: true,
-    logging: false,
-  });
-
-  await ds.initialize();
+  // Reusamos el DataSource del CLI para no duplicar config. Asume que el
+  // schema ya existe (creado por migraciones o por `synchronize` en dev).
+  await AppDataSource.initialize();
   console.log(`✓ Conectado a Postgres como ${process.env.DB_USERNAME}`);
 
-  const categoryRepo = ds.getRepository(CategoryEntity);
-  const wordRepo = ds.getRepository(WordEntity);
+  const categoryRepo = AppDataSource.getRepository(CategoryEntity);
+  const wordRepo = AppDataSource.getRepository(WordEntity);
 
   const seedsDir = resolve(here, 'seeds', locale);
   if (!existsSync(seedsDir)) {
@@ -108,7 +77,6 @@ async function main() {
         }),
       );
     } else {
-      // Refrescar nombre/icon por si los actualizamos en META
       category.name = meta.name;
       category.icon = meta.icon;
       await categoryRepo.save(category);
@@ -169,7 +137,7 @@ async function main() {
   console.log(
     `\nResumen: insertadas=${totalInserted} saltadas=${totalSkipped} locale=${locale}`,
   );
-  await ds.destroy();
+  await AppDataSource.destroy();
 }
 
 main().catch((err) => {

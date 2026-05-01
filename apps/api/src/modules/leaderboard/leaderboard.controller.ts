@@ -26,11 +26,28 @@ export class LeaderboardController {
         totalRounds: 3,
         finishedAt: '2026-04-25T22:31:50.000Z',
         leaderboard: [
-          { playerId: '...', name: 'Pedro', wins: 2, roundsSolved: 2, fastestSolveMs: 4200 },
-          { playerId: '...', name: 'Maria', wins: 1, roundsSolved: 1, fastestSolveMs: 7800 },
+          {
+            playerId: '...',
+            name: 'Pedro',
+            wins: 2,
+            roundsSolved: 2,
+            fastestSolveMs: 4200,
+          },
+          {
+            playerId: '...',
+            name: 'Maria',
+            wins: 1,
+            roundsSolved: 1,
+            fastestSolveMs: 7800,
+          },
         ],
         rounds: [
-          { roundNumber: 1, word: 'Camello', winnerPlayerId: '...', winnerName: 'Pedro' },
+          {
+            roundNumber: 1,
+            word: 'Camello',
+            winnerPlayerId: '...',
+            winnerName: 'Pedro',
+          },
         ],
       },
     },
